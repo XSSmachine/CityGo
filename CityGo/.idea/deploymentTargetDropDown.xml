@@ -5,6 +5,27 @@
       <entry key="app">
         <State />
       </entry>
+      <entry key="common">
+        <State />
+      </entry>
+      <entry key="common-compose">
+        <State />
+      </entry>
+      <entry key="core-testing">
+        <State />
+      </entry>
+      <entry key="data.network">
+        <State />
+      </entry>
+      <entry key="data.repository">
+        <State />
+      </entry>
+      <entry key="domain">
+        <State />
+      </entry>
+      <entry key="presentation.home">
+        <State />
+      </entry>
     </value>
   </component>
 </project>
