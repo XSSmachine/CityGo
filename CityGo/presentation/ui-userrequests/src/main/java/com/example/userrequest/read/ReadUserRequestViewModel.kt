@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
-import com.example.domain.interfaces.usecases.GetAllUserRequestsUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetAllUserRequestsUseCase
 import com.hfad.model.UserRequestResponseModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -47,7 +47,7 @@ class ReadUserRequestViewModel @Inject constructor(
     suspend fun getContacts() {
         try {
             _contacts.clear()
-            val list = getAllContactsUseCase.execute()
+            val list = getAllContactsUseCase.execute(1)
             _contacts.addAll(list.map {
                 it.toContactListResponseModel()
             })

@@ -84,7 +84,7 @@ fun CreateDetailsUserRequestScreen(
             Spacer(modifier = Modifier.width(16.dp))
 
 
-            val timeSlots = generateTimeSlots()
+            val timeSlots = createUserRequestViewModel.generateTimeSlots()
 
 // Define a mutable state to track the selected chip
             val selectedChipIndex = remember { mutableStateOf<Int?>(null) }
@@ -339,26 +339,6 @@ fun ChipVerticalGrid(
     }
 }
 
-fun generateTimeSlots(): List<String> {
-    val timeSlots = mutableListOf<String>()
-    val sdf = SimpleDateFormat("HH", Locale.getDefault())
-    val currentTime = Date()
-    val calendar = Calendar.getInstance()
 
-    calendar.time = currentTime
-    val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-
-    val startTime = currentHour + 1
-    val endTime = currentHour + 24 + (24-currentHour) // Generating time slots for the next 24 hours
-
-    for (i in startTime until endTime) {
-        val slotStartHour = i % 24 // Convert to 24-hour format
-        val slotEndHour = (i + 1) % 24 // Convert to 24-hour format
-        val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}"
-        timeSlots.add(slot)
-    }
-
-    return timeSlots
-}
 
 

@@ -5,13 +5,13 @@ import com.hfad.model.UserRequestResponseModel
 
 
 interface UserRequestDataSource {
-    suspend fun getAll(): List<UserRequestResponseModel>
+    suspend fun getAll(userId: Int): List<UserRequestResponseModel>
 
-    suspend fun getOne(id: Int): UserRequestResponseModel?
+    suspend fun getOne(userId: Int, id: Int): UserRequestResponseModel?
 
-    suspend fun delete(id: Int)
+    suspend fun delete(userId: Int, id: Int)
 
-    suspend fun update(id: Int, contact: UserRequestRequestModel)
+    suspend fun update(userId: Int, id: Int, contact: UserRequestRequestModel)
 
-    suspend fun create(data: UserRequestRequestModel)
+    suspend fun create(userId: Int, data: UserRequestRequestModel)
 }

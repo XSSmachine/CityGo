@@ -3,20 +3,19 @@ package com.example.citygo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.citygo.components.AppContent
+import com.example.citygo.navigation.Router
 import com.example.citygo.ui.theme.CityGoTheme
+import com.example.ui_users.login.CreateUserDialogScreen
+import com.example.ui_users.login.UserLoginViewModel
+import com.example.ui_users.login.LoginScreen
 import com.example.userrequest.create.CreateDetailsUserRequestScreen
 import com.example.userrequest.create.CreatePictureUserRequestScreen
 import com.example.userrequest.create.CreatePriceUserRequestScreen
@@ -27,53 +26,67 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalAnimationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             CityGoTheme {
                 // A surface container using the 'background' color from the theme
-                val navController = rememberNavController()
-                Router(navController = navController)
+                AppContent()
             }
         }
     }
 }
 
-@Composable
-fun Router(navController: NavHostController) {
-    NavHost(navController = navController,
-        startDestination = "picture") {
-
-        composable("picture"){
-            val listContactsViewModel: CreateUserRequestViewModel = hiltViewModel()
-            CreatePictureUserRequestScreen(navController = navController,
-                listContactsViewModel
-            )
-        }
-
-        composable("details") {
-            val createContactViewModel: CreateUserRequestViewModel = hiltViewModel()
-            CreateDetailsUserRequestScreen(navController = navController,
-                createContactViewModel)
-        }
-
-        composable("price"){
-            val listContactsViewModel: CreateUserRequestViewModel = hiltViewModel()
-            CreatePriceUserRequestScreen(navController = navController,
-                listContactsViewModel
-            )
-        }
-
-        composable("read"){
-            val listContactsViewModel: ReadUserRequestViewModel = hiltViewModel()
-            ReadUserRequestScreen(navController = navController,
-                listContactsViewModel
-            )
-        }
-
-
-
-    }
-
-
-}
+//@Composable
+//fun Router(navController: NavHostController,
+//           createUserProfileViewModel: UserLoginViewModel,
+//           createContactViewModel: CreateUserRequestViewModel
+//           ) {
+//    NavHost(navController = navController,
+//        startDestination = "login") {
+//
+//        composable("login"){
+//
+//            LoginScreen(navController = navController,
+//                createUserProfileViewModel
+//            )
+//        }
+//        composable("dialog"){
+//
+//            CreateUserDialogScreen(navController = navController,
+//                createUserProfileViewModel
+//            )
+//        }
+//
+//        composable("picture"){
+//
+//            CreatePictureUserRequestScreen(navController = navController,
+//                createContactViewModel
+//            )
+//        }
+//
+//        composable("details") {
+//
+//            CreateDetailsUserRequestScreen(navController = navController,
+//                createContactViewModel)
+//        }
+//
+//        composable("price"){
+//
+//            CreatePriceUserRequestScreen(navController = navController,
+//                createContactViewModel
+//            )
+//        }
+//
+//        composable("read"){
+//            val listContactsViewModel: ReadUserRequestViewModel = hiltViewModel()
+//            ReadUserRequestScreen(navController = navController,
+//                listContactsViewModel
+//            )
+//        }
+//
+//
+//
+//    }
+//}

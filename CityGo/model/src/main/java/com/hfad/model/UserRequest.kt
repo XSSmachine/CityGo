@@ -38,3 +38,24 @@ data class Address(
     val doorCode: String?, // Optional
     val phoneNumber: String,
 )
+
+
+data class UserProfileResponseModel(
+    val id: Int,
+    val name: String,
+    val surname: String,
+    val email: String?,
+    val phoneNumber: String,
+    val profilePicture: String?,
+    val stars: Double
+)
+
+data class UserProfileRequestModel(
+    val id: Int? = null,
+    val name: String,
+    val surname: String,
+    val email: String?,
+    val phoneNumber: String,
+    val profilePicture: String?,
+    val stars: Double
+)

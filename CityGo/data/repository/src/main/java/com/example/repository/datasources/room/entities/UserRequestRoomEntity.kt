@@ -9,6 +9,10 @@ import com.hfad.model.Address
 import com.hfad.model.UserRequestRequestModel
 import com.hfad.model.UserRequestResponseModel
 
+/**
+ * This class represents the structure of the "user_requests" table in the database
+ * @author Karlo Kovačević
+ */
 @Entity(tableName = "user_requests")
 data class UserRequestRoomEntity(
     @PrimaryKey
@@ -27,8 +31,14 @@ data class UserRequestRoomEntity(
     val price: Int
 )
 
-//prikaz na ekran kad iz rooma dohvaćamo model
-fun UserRequestRoomEntity.toContactResponseModel(): UserRequestResponseModel {
+/**
+ * Mapping functions
+ * @author Karlo Kovačević
+ */
+
+//Useful when retrieving data from the database and
+// mapping it to a model for presentation or usage in the UI
+fun UserRequestRoomEntity.toUserRequestResponseModel(): UserRequestResponseModel {
     return UserRequestResponseModel(
         id = id!!,
         userId =userId,
@@ -43,8 +53,8 @@ fun UserRequestRoomEntity.toContactResponseModel(): UserRequestResponseModel {
     )
 }
 
-//spremanje u bazu
-fun UserRequestRequestModel.toContactRoomEntity(): UserRequestRoomEntity{
+//This method is useful when preparing data to be stored in the database
+fun UserRequestRequestModel.toUserRequestRoomEntity(): UserRequestRoomEntity{
     return UserRequestRoomEntity(
         id = id,
         userId=userId,

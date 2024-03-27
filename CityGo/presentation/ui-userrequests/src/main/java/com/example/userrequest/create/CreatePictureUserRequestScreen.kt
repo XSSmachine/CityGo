@@ -144,10 +144,6 @@ fun CreatePictureUserRequestScreen(
                 Text(text = "Idući korak")
             }
 
-
-
-
-
         }
 
     }
@@ -189,16 +185,3 @@ fun ImageTaker(
 }
 
 
-fun Context.createImageFile(): File {
-
-    val timestamp = SimpleDateFormat("yyyy_MM_dd_HH-mm-ss").format(Date())
-    val imageFileName = "image_"+timestamp+"_"
-
-    return File.createTempFile(
-        imageFileName,
-        ".jpg",
-        externalCacheDir
-    )
-
-
-}

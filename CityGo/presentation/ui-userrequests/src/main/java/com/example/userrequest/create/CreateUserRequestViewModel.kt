@@ -1,17 +1,22 @@
 package com.example.userrequest.create
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.domain.interfaces.usecases.CreateUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.CreateUserRequestUseCase
 import com.hfad.model.Address
 import com.hfad.model.UserRequestRequestModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -255,9 +260,31 @@ class CreateUserRequestViewModel @Inject constructor(
         // Perform necessary actions with the addresses, such as saving them to a list
     }
 
+    fun generateTimeSlots(): List<String> {
+        val timeSlots = mutableListOf<String>()
+        val sdf = SimpleDateFormat("HH", Locale.getDefault())
+        val currentTime = Date()
+        val calendar = Calendar.getInstance()
+
+        calendar.time = currentTime
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+
+        val startTime = currentHour + 1
+        val endTime = currentHour + 24 + (24-currentHour) // Generating time slots for the next 24 hours
+
+        for (i in startTime until endTime) {
+            val slotStartHour = i % 24 // Convert to 24-hour format
+            val slotEndHour = (i + 1) % 24 // Convert to 24-hour format
+            val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}"
+            timeSlots.add(slot)
+        }
+
+        return timeSlots
+    }
+
     suspend fun createContact() {
         try {
-            createUserRequestUseCase.execute(
+            createUserRequestUseCase.execute(1,
                 UserRequestRequestModel(
                 id=null, userId = "test1", photo=_capturedImageUris.value,address1=_address1.value, address2=_address2.value,description = _description.value, timeTable = _timeTable.value, category = "L", extraWorker = _extraWorker.value.toBoolean(), price = _price.value
             ))
@@ -265,4 +292,18 @@ class CreateUserRequestViewModel @Inject constructor(
             _errorMessage.value = "Error ${e.message}"
         }
     }
+}
+
+fun Context.createImageFile(): File {
+
+    val timestamp = SimpleDateFormat("yyyy_MM_dd_HH-mm-ss").format(Date())
+    val imageFileName = "image_"+timestamp+"_"
+
+    return File.createTempFile(
+        imageFileName,
+        ".jpg",
+        externalCacheDir
+    )
+
+
 }

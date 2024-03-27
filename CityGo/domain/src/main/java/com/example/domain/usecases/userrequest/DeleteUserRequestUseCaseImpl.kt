@@ -1,10 +1,10 @@
 package com.example.domain.usecases.userrequest
 
 import com.example.domain.interfaces.UserRequestRepository
-import com.example.domain.interfaces.usecases.DeleteUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.DeleteUserRequestUseCase
 
 class DeleteUserRequestUseCaseImpl constructor(private val userRequestRepository: UserRequestRepository) : DeleteUserRequestUseCase{
-    override suspend fun execute(id: Int) {
-        return userRequestRepository.deleteContact(id)
+    override suspend fun execute(userId:Int,id: Int) {
+        return userRequestRepository.deleteUserRequest(userId,id)
     }
 }
