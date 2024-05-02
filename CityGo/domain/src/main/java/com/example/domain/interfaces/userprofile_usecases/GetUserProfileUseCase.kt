@@ -4,5 +4,6 @@ import com.hfad.model.UserProfileResponseModel
 import com.hfad.model.UserRequestRequestModel
 
 interface GetUserProfileUseCase {
-    suspend fun execute(phoneNum:String): UserProfileResponseModel?
+    suspend fun execute(userId:String): UserProfileResponseModel?
 }
+

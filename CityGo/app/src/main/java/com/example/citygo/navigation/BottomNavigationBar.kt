@@ -7,8 +7,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,10 +23,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -35,7 +41,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 fun BottomNavigationBar(navHostController: NavHostController) {
     val bottomScreens = listOf(
         NavigationItem.Home,
-        NavigationItem.RequestList,
+        NavigationItem.AllRequestList,
+        NavigationItem.MyRequestList,
         NavigationItem.Profile,
     )
 
@@ -61,19 +68,26 @@ fun BottomNavigationBar(navHostController: NavHostController) {
             bottomScreens.map {
                 val isSelected = navHostController
                     .currentBackStackEntryAsState().value?.destination?.route == it.route
+                val interactionSource = remember { MutableInteractionSource() }
                 val animatedWeight by animateFloatAsState(targetValue = if (isSelected) 1.5f else 1f)
                 CustomBottomNavItem(
                     screen = it, isSelected = isSelected,
-                    modifier = Modifier.weight(animatedWeight)
-                        .clickable {
+                    modifier = Modifier
+                        .weight(animatedWeight)
+                        .clickable(interactionSource = interactionSource,
+                            indication = null) {
+                            if (it.route == "home") {
+                                navHostController.popBackStack(
+                                    navHostController.graph.findStartDestination().id, false
+                                )
+                            }
+
                             navHostController.navigate(
                                 it.route
                             ) {
                                 restoreState = true
                                 launchSingleTop = true
-
-                                val destination = navHostController.graph.findStartDestination().id
-                                popUpTo(destination) { saveState = true }
+                                popUpTo(navHostController.graph.findStartDestination().id) { saveState = true }
                             }
                         },
                 )
@@ -115,7 +129,7 @@ private fun CustomBottomNavItem(
     isSelected: Boolean,
 ) {
     val animatedIconSize by animateDpAsState(
-        targetValue = if (isSelected) 30.dp else 25.dp,
+        targetValue = if (isSelected) 50.dp else 25.dp,
         animationSpec = spring(
             stiffness = Spring.StiffnessLow,
             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -125,28 +139,29 @@ private fun CustomBottomNavItem(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier
-                .height(if (isSelected) 36.dp else 26.dp)
+        Column(
+            modifier = Modifier.padding(5.dp)
+                .height(if (isSelected) 45.dp else 26.dp)
                 .shadow(
                     elevation = if (isSelected) 15.dp else 0.dp,
                     shape = RoundedCornerShape(20.dp)
                 )
                 .background(
-                    color = MaterialTheme.colorScheme.background,
+                    color = if (isSelected) Color.Yellow else MaterialTheme.colorScheme.background,
                     shape = RoundedCornerShape(20.dp)
                 ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Icon(screen.icon,"ikona")
+            Icon(painter = painterResource(id = screen.icon),"ikona")
 
             if (isSelected) {
                 Text(
                     text = screen.title,
                     modifier = Modifier.padding(start = 8.dp, end = 10.dp),
                     maxLines = 1,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 10.sp
                 )
             }
         }

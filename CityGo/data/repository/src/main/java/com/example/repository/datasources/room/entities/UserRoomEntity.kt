@@ -13,8 +13,8 @@ import com.hfad.model.UserRequestResponseModel
  */
 @Entity(tableName = "users")
 data class UserProfileRoomEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int? = null,
+    @PrimaryKey
+    val id: String,
     val name: String,
     val surname: String,
     val email: String?,

@@ -1,6 +1,8 @@
 package com.example.repository.datasources.room.entities
 
 
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
@@ -15,7 +17,8 @@ import com.hfad.model.UserRequestResponseModel
  */
 @Entity(tableName = "user_requests")
 data class UserRequestRoomEntity(
-    @PrimaryKey
+
+    @PrimaryKey(autoGenerate = true)
     val id: Int? = null,
     @ColumnInfo(name = "user_id")
     val userId: String,
@@ -26,6 +29,7 @@ data class UserRequestRoomEntity(
     @Embedded(prefix = "address2_")
     val address2: Address,
     val timeTable: String,
+    val date:String,
     val category: String,
     val extraWorker: Boolean,
     val price: Int
@@ -42,11 +46,12 @@ fun UserRequestRoomEntity.toUserRequestResponseModel(): UserRequestResponseModel
     return UserRequestResponseModel(
         id = id!!,
         userId =userId,
-        photo = photo,
+        photo = Uri.parse(photo),
         description =description,
         address1 = address1,
         address2 = address2,
         timeTable = timeTable,
+        date=date,
         category = category,
         extraWorker =extraWorker,
         price = price,
@@ -63,6 +68,7 @@ fun UserRequestRequestModel.toUserRequestRoomEntity(): UserRequestRoomEntity{
         address1 = address1,
         address2 = address2,
         timeTable=timeTable,
+        date=date,
         category=category,
         extraWorker=extraWorker,
         price=price,

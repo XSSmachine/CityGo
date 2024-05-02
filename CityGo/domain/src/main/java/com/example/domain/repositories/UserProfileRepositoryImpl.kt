@@ -4,7 +4,6 @@ import android.app.Activity
 import com.example.domain.interfaces.UserProfileRepository
 import com.example.repository.interfaces.UsersDataSource
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.hfad.model.UserProfileRequestModel
@@ -17,9 +16,10 @@ import java.util.concurrent.TimeUnit
 
 
 
-    override suspend fun createUser(name: String, surname: String, phoneNumber: String, email: String?) {
+    override suspend fun createUser(userId:String,name: String, surname: String, phoneNumber: String, email: String?) {
         // Create a new user profile with the provided data using the user profile data source
         return userProfileDataSource.createUserWithPhoneNumber(
+            userId = userId,
             name = name,
             surname = surname,
             phoneNumber = phoneNumber,
@@ -34,32 +34,28 @@ import java.util.concurrent.TimeUnit
         return userProfileDataSource.userExists(phoneNumber)
     }
 
-    override suspend fun getUser(phoneNumber: String): UserProfileResponseModel? {
+    override suspend fun getUser(userId: String): UserProfileResponseModel? {
         // Retrieve user information based on the phone number using the user profile data source
-        return userProfileDataSource.getUserByPhoneNumber(phoneNumber)
+        return userProfileDataSource.getUserById(userId)
     }
 
-    override suspend fun updateUser(userId: Int, name: String, surname: String, email: String?) {
+    override suspend fun updateUser(userId: String, name: String, surname: String, email: String,photo:String?) {
         // Update user information with the provided data using the user profile data source
         // Assuming you have a way to retrieve the user's ID (userId) based on the phone number
         val userData = UserProfileRequestModel(
+            id = userId,
             name = name,
             surname = surname,
             phoneNumber = "", // Assuming phone number is not updated
             email = email,
-            profilePicture = null, // Handle profile picture update if needed
+            profilePicture = photo, // Handle profile picture update if needed
             stars = 0.0 // Assuming stars is not updated
         )
         userProfileDataSource.updateUser(userId, userData)
     }
 
-    override suspend fun deleteUser(phoneNumber: String) {
-        // Delete the user account associated with the phone number using the user profile data source
-        // Assuming you have a way to retrieve the user's ID based on the phone number
-        val user = userProfileDataSource.getUserByPhoneNumber(phoneNumber)
-        user?.let {
-            userProfileDataSource.deleteUser(it.id)
-        }
+    override suspend fun deleteUser(userId: String) {
+        userProfileDataSource.deleteUser(userId)
     }
 
     override fun logOut() {

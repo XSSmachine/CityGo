@@ -7,7 +7,7 @@ import com.hfad.model.UserProfileResponseModel
 
 class GetUserProfileUseCaseImpl constructor(private val userProfileRepository: UserProfileRepository) :
     GetUserProfileUseCase {
-    override suspend fun execute(phoneNum: String): UserProfileResponseModel? {
-        return userProfileRepository.getUser(phoneNum)
+    override suspend fun execute(userId: String): UserProfileResponseModel? {
+        return userProfileRepository.getUser(userId)
     }
 }

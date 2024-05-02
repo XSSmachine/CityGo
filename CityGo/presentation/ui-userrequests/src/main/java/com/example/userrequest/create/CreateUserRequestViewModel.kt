@@ -2,26 +2,41 @@ package com.example.userrequest.create
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
 import com.example.domain.interfaces.userrequest_usecases.CreateUserRequestUseCase
 import com.hfad.model.Address
 import com.hfad.model.UserRequestRequestModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
 class CreateUserRequestViewModel @Inject constructor(
-    private val createUserRequestUseCase: CreateUserRequestUseCase
+    private val createUserRequestUseCase: CreateUserRequestUseCase,
+    private val getUserIdUseCase: GetUserIdUseCase,
+
 ) : ViewModel() {
 
 
@@ -32,7 +47,7 @@ class CreateUserRequestViewModel @Inject constructor(
     private val _addressName = mutableStateOf("")
     private val _latitude = mutableDoubleStateOf(0.0)
     private val _longitude = mutableDoubleStateOf(0.0)
-    private val _liftStairs = mutableStateOf("")
+    private val _liftStairs = mutableStateOf(0)
     private val _floors = mutableIntStateOf(0)
     private val _doorCode = mutableStateOf("")
     private val _phoneNumber = mutableStateOf("")
@@ -42,15 +57,15 @@ class CreateUserRequestViewModel @Inject constructor(
     var selectedChip by mutableStateOf("")
     private val _timeTable = mutableStateOf("")
     private val _category = mutableStateOf("")
-    private val _extraWorker = mutableStateOf("")
+    private val _extraWorker = mutableStateOf(0)
     private val _price = mutableIntStateOf(0)
 
     // Address 1
     val addressName1 = mutableStateOf("")
     val latitude1 = mutableStateOf(0.0)
     val longitude1 = mutableStateOf(0.0)
-    val liftStairs1 = mutableStateOf(true)
-    val floors1 = mutableStateOf(0)
+    val liftStairs1 = mutableStateOf(0)
+    val floors1 = mutableStateOf("0")
     val doorCode1 = mutableStateOf("")
     val phoneNumber1 = mutableStateOf("")
 
@@ -58,11 +73,33 @@ class CreateUserRequestViewModel @Inject constructor(
     val addressName2 = mutableStateOf("")
     val latitude2 = mutableStateOf(0.0)
     val longitude2 = mutableStateOf(0.0)
-    val liftStairs2 = mutableStateOf(true)
-    val floors2 = mutableStateOf(0)
+    val liftStairs2 = mutableStateOf(0)
+    val floors2 = mutableStateOf("0")
     val doorCode2 = mutableStateOf("")
     val phoneNumber2 = mutableStateOf("")
 
+
+    private var clickCounter: Int by mutableStateOf(0)
+    fun incrementClickCounter() {
+        clickCounter++
+    }
+
+    // Function to decrement the click counter
+    fun decrementClickCounter() {
+        clickCounter--
+    }
+
+    val category:String
+        get() = _category.value
+
+    fun setCategory(value: String) {
+        _category.value = value
+    }
+
+    fun getClickCount(): Int {
+        return clickCounter
+        clickCounter=0
+    }
     // Methods for Address 1
     fun setAddressName1(value: String) {
         addressName1.value = value
@@ -76,11 +113,11 @@ class CreateUserRequestViewModel @Inject constructor(
         longitude1.value = value
     }
 
-    fun setLiftStairs1(value: Boolean) {
+    fun setLiftStairs1(value: Int) {
         liftStairs1.value = value
     }
 
-    fun setFloors1(value: Int) {
+    fun setFloors1(value: String) {
         floors1.value = value
     }
 
@@ -105,11 +142,11 @@ class CreateUserRequestViewModel @Inject constructor(
         longitude2.value = value
     }
 
-    fun setLiftStairs2(value: Boolean) {
+    fun setLiftStairs2(value: Int) {
         liftStairs2.value = value
     }
 
-    fun setFloors2(value: Int) {
+    fun setFloors2(value: String) {
         floors2.value = value
     }
 
@@ -121,6 +158,37 @@ class CreateUserRequestViewModel @Inject constructor(
         phoneNumber2.value = value
     }
 
+
+    fun resetValues() {
+        // Reset Address 1
+        _address1.value = Address("", 0.0, 0.0, true, 0, "", "")
+        addressName1.value = ""
+        latitude1.value = 0.0
+        longitude1.value = 0.0
+        liftStairs1.value = 0
+        floors1.value = "0"
+        doorCode1.value = ""
+        phoneNumber1.value = ""
+
+        // Reset Address 2
+        _address2.value = Address("", 0.0, 0.0, true, 0, "", "")
+        addressName2.value = ""
+        latitude2.value = 0.0
+        longitude2.value = 0.0
+        liftStairs2.value = 0
+        floors2.value = "0"
+        doorCode2.value = ""
+        phoneNumber2.value = ""
+
+        // Reset other values
+        _description.value = ""
+        _capturedImageUris.value = ""
+        selectedChip = ""
+        _timeTable.value = ""
+        _category.value = ""
+        _extraWorker.value = 0
+        _price.value = 0
+    }
 
     val address1 : Address
         get() = Address(
@@ -147,41 +215,12 @@ class CreateUserRequestViewModel @Inject constructor(
     val description : String
         get() = _description.value
 
-    val addressName: String
-        get() = _addressName.value
+    val extraWorker : Int
+        get() = _extraWorker.value
 
-    val latitude: Double
-        get() = _latitude.value
-
-    val longitude: Double
-        get() = _longitude.value
-
-    val liftStairs: Boolean
-        get() = _liftStairs.value.toBoolean()
-
-    val floors: Int
-        get() = _floors.value
-
-    val doorCode: String
-        get() = _doorCode.value
-
-    val phoneNumber: String
-        get() = _phoneNumber.value
-
-    val photos : String
-        get() = _capturedImageUris.value
-
-    val errorMessage : String
-        get() = _errorMessage.value
-
-    val timeTable : String
-        get() = _timeTable.value
-
-    val category : String
-        get() = _category.value
-
-    val extraWorker : Boolean
-        get() = _extraWorker.value.toBoolean()
+    fun setExtraWorker(value:Int) {
+        _extraWorker.value = value
+    }
 
     val price : Int
         get() = _price.value
@@ -207,12 +246,20 @@ class CreateUserRequestViewModel @Inject constructor(
         _longitude.value = longitude ?: 0.0 // Default to 0.0 if longitude is null
     }
 
-    fun setLiftStairs(liftStairs: Boolean) {
-        _liftStairs.value = liftStairs.toString()
+    fun setLiftStairs(liftStairs: Int) {
+        _liftStairs.value = liftStairs
     }
 
     fun setPrice(price: Int) {
         _price.value = price
+    }
+
+    fun Int.add5(): Int {
+        return this + 5
+    }
+
+    fun Int.minus5(): Int {
+        return this - 5
     }
 
     fun setDoorCode(doorCode: String?) {
@@ -241,8 +288,8 @@ class CreateUserRequestViewModel @Inject constructor(
             addressName = addressName1.value,
             latitude = latitude1.value,
             longitude = longitude1.value,
-            liftStairs = liftStairs1.value,
-            floor = floors1.value,
+            liftStairs = liftStairs1.value==0,
+            floor = floors1.value.toInt(),
             doorCode = doorCode1.value,
             phoneNumber = phoneNumber1.value
         )
@@ -251,8 +298,8 @@ class CreateUserRequestViewModel @Inject constructor(
             addressName = addressName2.value,
             latitude = latitude2.value,
             longitude = longitude2.value,
-            liftStairs = liftStairs2.value,
-            floor = floors2.value,
+            liftStairs = liftStairs2.value==0,
+            floor = floors2.value.toInt(),
             doorCode = doorCode2.value,
             phoneNumber = phoneNumber2.value
         )
@@ -260,37 +307,128 @@ class CreateUserRequestViewModel @Inject constructor(
         // Perform necessary actions with the addresses, such as saving them to a list
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun generateTimeSlots(): List<String> {
         val timeSlots = mutableListOf<String>()
-        val sdf = SimpleDateFormat("HH", Locale.getDefault())
-        val currentTime = Date()
-        val calendar = Calendar.getInstance()
 
-        calendar.time = currentTime
-        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        // Get current date and time
+        val currentDateTime = ZonedDateTime.now(ZoneId.of("Europe/Zagreb"))
 
-        val startTime = currentHour + 1
-        val endTime = currentHour + 24 + (24-currentHour) // Generating time slots for the next 24 hours
 
-        for (i in startTime until endTime) {
-            val slotStartHour = i % 24 // Convert to 24-hour format
-            val slotEndHour = (i + 1) % 24 // Convert to 24-hour format
-            val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}"
+        // Get current date and next day
+        val currentDate = currentDateTime.toLocalDate()
+        val nextDate = currentDate.plusDays(1)
+
+        var currentHour = currentDateTime.hour
+        Log.d("HOUR",currentHour.toString())
+        var currentMinute = currentDateTime.minute
+        Log.d("MINUTE",currentMinute.toString())
+
+        // If the current minute is more than 30, round up the current hour
+        if (currentMinute > 30) {
+            currentHour += 1
+        }
+
+        // Calculate the next hour from the current time
+        var nextHour = currentHour
+
+        // Generate time slots for the rest of today
+        while (nextHour < 24) {
+            val slotStartHour = nextHour
+            val slotEndHour = nextHour + 1
+
+            val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}, ${currentDate.format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"))}"
             timeSlots.add(slot)
+
+            nextHour++
+        }
+
+        // Generate time slots for the entire day tomorrow
+        nextHour = 0 // Reset next hour to 0 for tomorrow
+
+        while (nextHour < 24) {
+            val slotStartHour = nextHour
+            val slotEndHour = nextHour + 1
+
+            val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}, ${nextDate.format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"))}"
+            timeSlots.add(slot)
+
+            nextHour++
         }
 
         return timeSlots
     }
 
-    suspend fun createContact() {
-        try {
-            createUserRequestUseCase.execute(1,
+
+//    fun generateTimeSlots(): List<String> {
+//        val timeSlots = mutableListOf<String>()
+//        val currentTime = Date()
+//        val calendar = Calendar.getInstance()
+//
+//        val date = getCurrentDateTime()
+//        val dateInString = date.toString("dd/MM/yyyy HH:mm:ss")
+//
+//        calendar.time = currentTime
+//        var currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+//        val currentMinute = calendar.get(Calendar.MINUTE)
+//
+//        // If the current minute is more than 30, round up the current hour
+//        if (currentMinute > 30) {
+//            currentHour += 1
+//        }
+//
+//        val startTime = currentHour + 1
+//        val endTime = currentHour + 24 + (24-currentHour) // Generating time slots for the next 24 hours
+//
+//        for (i in startTime until endTime) {
+//            val slotStartHour = i % 24 // Convert to 24-hour format
+//            val slotEndHour = (i + 1) % 24 // Convert to 24-hour format
+//            val dayLabel = if (i < 24) "today" else "tomorrow"
+//            val slot = "${slotStartHour.toString().padStart(2, '0')} - ${slotEndHour.toString().padStart(2, '0')}, $dayLabel"
+//            timeSlots.add(slot)
+//        }
+//
+//        return timeSlots
+//    }
+
+
+    suspend fun getUserId(): Result<String?> {
+        return getUserIdUseCase.execute()
+    }
+
+
+    fun getIdValue() : String{
+        var r = ""
+        runBlocking {
+            r = getUserId().getOrNull()?:"none"
+        }
+        Log.d("VIEWMODEL-user_request",r)
+        return r
+    }
+
+
+    fun createContact() {
+        viewModelScope.launch { try {
+            Log.d("TEST", _capturedImageUris.value)
+            Log.d("TEST", _description.value)
+            Log.d("TEST",getIdValue())
+            val date = getCurrentDateTime()
+            val dateInString = date.toString("dd/MM/yyyy HH:mm:ss")
+            createUserRequestUseCase.execute(
+
+//                UserRequestRequestModel(
+//                    id=null, userId = "test1", photo="gallery/img1",address1=_address1.value, address2=_address2.value,description = "opis", timeTable = _timeTable.value, category = "L", extraWorker = _extraWorker.value, price = _price.value
+//                ))
                 UserRequestRequestModel(
-                id=null, userId = "test1", photo=_capturedImageUris.value,address1=_address1.value, address2=_address2.value,description = _description.value, timeTable = _timeTable.value, category = "L", extraWorker = _extraWorker.value.toBoolean(), price = _price.value
-            ))
+                    id=null, userId = getIdValue(), photo=_capturedImageUris.value,address1=_address1.value, address2=_address2.value,description = _description.value, timeTable = _timeTable.value, date = dateInString, category = _category.value, extraWorker = _extraWorker.value==1, price = _price.value
+                ))
+            resetValues()
         } catch (e: Exception) {
             _errorMessage.value = "Error ${e.message}"
-        }
+        } }
+
     }
 }
 
@@ -306,4 +444,14 @@ fun Context.createImageFile(): File {
     )
 
 
+}
+
+
+fun Date.toString(format: String, locale: Locale = Locale.getDefault()): String {
+    val formatter = SimpleDateFormat(format, locale)
+    return formatter.format(this)
+}
+
+fun getCurrentDateTime(): Date {
+    return Calendar.getInstance().time
 }

@@ -3,5 +3,5 @@ package com.example.domain.interfaces.userprofile_usecases
 import com.hfad.model.UserProfileRequestModel
 
 interface UpdateUserProfileUseCase {
-    suspend fun execute(userId:Int, data: UserProfileRequestModel)
+    suspend fun execute(userId:String, data: UserProfileRequestModel)
 }

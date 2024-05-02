@@ -1,56 +1,107 @@
 package com.example.domain.repositories
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import com.example.domain.interfaces.DataStoreRepository
 import kotlinx.coroutines.flow.Flow
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.domain.repositories.DataStoreRepositoryImpl.PreferencesKey.userId
+import com.example.domain.repositories.DataStoreRepositoryImpl.PreferencesKey.userRole
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import java.io.IOException
+import javax.inject.Inject
 
 
 
-private const val USER_PREFERENCES_NAME = "user_preferences"
-private const val USER_ID_KEY ="user_id"
-
-class DataStoreRepositoryImpl constructor(private val dataStore: DataStore<androidx.datastore.preferences.core.Preferences>, context: Context)
+class DataStoreRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>)
     :DataStoreRepository {
 
-    private val TAG: String = "UserPreferencesRepo"
-
-    private val sharedPreferences =
-        context.applicationContext.getSharedPreferences(USER_PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     private object PreferencesKey {
         val userId = stringPreferencesKey("user_id")
+        val userRole = stringPreferencesKey("role")
 
 
     }
 
+    override suspend fun setUserId(user_id: String) {
+        Result.runCatching {
+            dataStore.edit { preferences ->
+                preferences[userId] = user_id
+            }
 
-    override suspend fun getUserId(userId: String) {
-        sharedPreferences.edit {
-            putString(USER_ID_KEY,userId)
+        }}
+
+        override suspend fun getUserId(): Result<String> {
+            return Result.runCatching {
+                val flow = dataStore.data
+                    .catch { exception ->
+                        /*
+                     * dataStore.data throws an IOException when an error
+                     * is encountered when reading data
+                     */
+                        if (exception is IOException) {
+                            emit(emptyPreferences())
+                        } else {
+                            throw exception
+                        }
+                    }
+                    .map { preferences ->
+                        // Get our name value, defaulting to "" if not set
+                        preferences[userId]
+                    }
+                val value = flow.firstOrNull() ?: "" // we only care about the 1st value
+                value
+            }
+        }
+
+
+    override suspend fun clearUserId() {
+        Result.runCatching {
+            dataStore.edit { preferences ->
+                preferences.remove(PreferencesKey.userId)
+                preferences.remove(PreferencesKey.userRole)
+            }
+        }
+
+    }
+
+    override suspend fun setUserRole(userR: String) {
+        Result.runCatching {
+            dataStore.edit { preferences ->
+                preferences[userRole] = userR
+            }
+
         }
     }
 
-    override suspend fun clearUserId() {
-        val editor:SharedPreferences.Editor = sharedPreferences.edit()
-        editor.putString(USER_ID_KEY,"")
-        editor.apply()
+    override suspend fun getUserRole(): Result<String> {
+        return Result.runCatching {
+            val flow = dataStore.data
+                .catch { exception ->
+                    /*
+                 * dataStore.data throws an IOException when an error
+                 * is encountered when reading data
+                 */
+                    if (exception is IOException) {
+                        emit(emptyPreferences())
+                    } else {
+                        throw exception
+                    }
+                }
+                .map { preferences ->
+                    // Get our name value, defaulting to "" if not set
+                    preferences[userRole]
+                }
+            val value = flow.firstOrNull() ?: "" // we only care about the 1st value
+            value
+        }
     }
-
-    override val savedUserId: Flow<String> = dataStore.data
-            .map { preferences ->
-                // Get our show completed value, defaulting to false if not set:
-                preferences[userId] ?: ""
-
-            }
-
 
 }
 

@@ -19,6 +19,11 @@ import com.example.citygo.navigation.Router
 import com.example.ui_home.HomeViewModel
 import com.example.ui_users.login.UserLoginViewModel
 import com.example.userrequest.create.CreateUserRequestViewModel
+import com.example.userrequest.details.DetailUserRequestViewModel
+import com.example.userrequest.update.UpdateUserRequestViewModel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 
 @ExperimentalAnimationApi
@@ -28,10 +33,14 @@ fun AppContent() {
     val createUserProfileViewModel: UserLoginViewModel = hiltViewModel()
     val createContactViewModel: CreateUserRequestViewModel = hiltViewModel()
     val homeViewModel:HomeViewModel = hiltViewModel()
+    val detailUserRequestViewModel:DetailUserRequestViewModel = hiltViewModel()
+    val updateUserRequestViewModel:UpdateUserRequestViewModel = hiltViewModel()
+    val isLoginRequired =  createUserProfileViewModel.getIdValue().isNullOrBlank()
 
     val bottomScreens = listOf(
         NavigationItem.Home.route,
-        NavigationItem.RequestList.route,
+        NavigationItem.AllRequestList.route,
+        NavigationItem.MyRequestList.route,
         NavigationItem.Profile.route,
     )
 
@@ -52,7 +61,7 @@ fun AppContent() {
         Box(
             modifier = Modifier.padding(it)
         ) {
-            Router(navController = navController, createUserProfileViewModel, createContactViewModel,homeViewModel)
+            Router(navController = navController, createUserProfileViewModel, createContactViewModel,homeViewModel,detailUserRequestViewModel,updateUserRequestViewModel,isLoginRequired)
         }
     }
 

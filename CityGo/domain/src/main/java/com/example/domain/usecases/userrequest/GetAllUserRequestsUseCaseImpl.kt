@@ -5,7 +5,7 @@ import com.example.domain.interfaces.userrequest_usecases.GetAllUserRequestsUseC
 import com.hfad.model.UserRequestResponseModel
 
 class GetAllUserRequestsUseCaseImpl constructor(private val userRequestRepository: UserRequestRepository) : GetAllUserRequestsUseCase{
-    override suspend fun execute(userId:Int): List<UserRequestResponseModel> {
+    override suspend fun execute(userId:String): List<UserRequestResponseModel> {
         return userRequestRepository.getAllUserRequests(userId)
     }
 }

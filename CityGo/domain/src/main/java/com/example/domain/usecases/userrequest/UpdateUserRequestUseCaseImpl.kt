@@ -5,7 +5,7 @@ import com.example.domain.interfaces.userrequest_usecases.UpdateUserRequestUseCa
 import com.hfad.model.UserRequestRequestModel
 
 class UpdateUserRequestUseCaseImpl constructor(private val userRequestRepository: UserRequestRepository) : UpdateUserRequestUseCase {
-    override suspend fun execute(userId:Int,id: Int, data: UserRequestRequestModel) {
+    override suspend fun execute(userId:String,id: Int, data: UserRequestRequestModel) {
         return userRequestRepository.updateUserRequest(userId,id,data)
     }
 }

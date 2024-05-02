@@ -2,41 +2,82 @@ package com.example.citygo
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.SharedPreferencesMigration
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.example.domain.interfaces.DataStoreRepository
+import com.example.domain.interfaces.OfferRepository
+import com.example.domain.interfaces.ServiceProviderProfileRepository
 import com.example.domain.interfaces.UserProfileRepository
 import com.example.domain.interfaces.UserRequestRepository
+import com.example.domain.interfaces.offer_usecases.CreateOfferUseCase
+import com.example.domain.interfaces.offer_usecases.GetAllMyOffersUseCase
+import com.example.domain.interfaces.offer_usecases.GetAllOffersUseCase
+import com.example.domain.interfaces.offer_usecases.GetOfferUseCase
+import com.example.domain.interfaces.offer_usecases.HasOfferUseCase
+import com.example.domain.interfaces.offer_usecases.UpdateOfferStatusUseCase
+import com.example.domain.interfaces.serviceproviderprofile_usecases.CreateServiceProviderProfileUseCase
+import com.example.domain.interfaces.serviceproviderprofile_usecases.DeleteServiceProviderProfileUseCase
+import com.example.domain.interfaces.serviceproviderprofile_usecases.GetServiceProviderProfileUseCase
+import com.example.domain.interfaces.serviceproviderprofile_usecases.UpdateServiceProviderProfileUseCase
+import com.example.domain.interfaces.serviceproviderprofile_usecases.UpdateServiceProviderStatusUseCase
 import com.example.domain.interfaces.userprofile_usecases.CheckIfUserProfileExistUseCase
+import com.example.domain.interfaces.userprofile_usecases.ClearUserIdUseCase
 import com.example.domain.interfaces.userprofile_usecases.CreateUserProfileUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
+import com.example.domain.interfaces.userprofile_usecases.SetUserIdUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserProfileUseCase
-import com.example.domain.interfaces.userprofile_usecases.ReadUserIdUseCase
+import com.example.domain.interfaces.userprofile_usecases.GetUserRoleUseCase
 import com.example.domain.interfaces.userprofile_usecases.SendVerificationCodeUseCase
+import com.example.domain.interfaces.userprofile_usecases.SetUserRoleUseCase
 import com.example.domain.interfaces.userprofile_usecases.UpdateUserProfileUseCase
 import com.example.domain.interfaces.userrequest_usecases.CreateUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.DeleteUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetAllCurrentUserRequestsUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetAllUserRequestsUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetUserRequestByIdUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.UpdateUserRequestUseCase
 import com.example.domain.repositories.DataStoreRepositoryImpl
+import com.example.domain.repositories.OfferRepositoryImpl
+import com.example.domain.repositories.ServiceProviderProfileRepositoryImpl
 import com.example.domain.repositories.UserProfileRepositoryImpl
 import com.example.domain.repositories.UserRequestRepositoryImpl
+import com.example.domain.usecases.offer.CreateOfferUseCaseImpl
+import com.example.domain.usecases.offer.GetAllMyOffersUseCaseImpl
+import com.example.domain.usecases.offer.GetAllOffersUseCaseImpl
+import com.example.domain.usecases.offer.GetOfferUseCaseImpl
+import com.example.domain.usecases.offer.HasOfferUseCaseImpl
+import com.example.domain.usecases.offer.UpdateOfferStatusUseCaseImpl
+import com.example.domain.usecases.serviceproviderprofile.CreateServiceProviderProfileUseCaseImpl
+import com.example.domain.usecases.serviceproviderprofile.DeleteServiceProviderProfileUseCaseImpl
+import com.example.domain.usecases.serviceproviderprofile.GetServiceProviderProfileUseCaseImpl
+import com.example.domain.usecases.serviceproviderprofile.UpdateServiceProviderProfileUseCaseImpl
+import com.example.domain.usecases.serviceproviderprofile.UpdateServiceProviderStatusUseCaseImpl
 import com.example.domain.usecases.userprofile.CheckIfUserProfileExistUseCaseImpl
+import com.example.domain.usecases.userprofile.ClearUserIdUseCaseImpl
 import com.example.domain.usecases.userprofile.CreateUserProfileUseCaseImpl
 import com.example.domain.usecases.userprofile.GetUserIdUseCaseImpl
+import com.example.domain.usecases.userprofile.SetUserIdUseCaseImpl
 import com.example.domain.usecases.userprofile.GetUserProfileUseCaseImpl
-import com.example.domain.usecases.userprofile.ReadUserIdUseCaseImpl
+import com.example.domain.usecases.userprofile.GetUserRoleUseCaseImpl
 import com.example.domain.usecases.userprofile.SendVerificationCodeUseCaseImpl
+import com.example.domain.usecases.userprofile.SetUserRoleUseCaseImpl
 import com.example.domain.usecases.userprofile.UpdateUserProfileUseCaseImpl
 import com.example.domain.usecases.userrequest.CreateUserRequestUseCaseImpl
+import com.example.domain.usecases.userrequest.DeleteUserRequestUseCaseImpl
+import com.example.domain.usecases.userrequest.GetAllCurrentUserRequestsUseCaseImpl
 import com.example.domain.usecases.userrequest.GetAllUserRequestsUseCaseImpl
+import com.example.domain.usecases.userrequest.GetUserRequestByIdUseCaseImpl
+import com.example.domain.usecases.userrequest.GetUserRequestUseCaseImpl
+import com.example.domain.usecases.userrequest.UpdateUserRequestUseCaseImpl
+import com.example.repository.datasources.room.RoomOfferDataSource
+import com.example.repository.datasources.room.RoomServiceProviderDataSource
 import com.example.repository.datasources.room.RoomUserDataSource
 import com.example.repository.datasources.room.RoomUserRequestDataSource
 import com.example.repository.interfaces.UserRequestDataSource
 import com.example.repository.interfaces.CityGoDatabase
+import com.example.repository.interfaces.OfferDataSource
+import com.example.repository.interfaces.ServiceProvidersDataSource
 import com.example.repository.interfaces.UsersDataSource
 import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
@@ -44,9 +85,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 
 
@@ -56,7 +94,7 @@ import javax.inject.Singleton
  * @author Karlo Kovačević
  */
 
-private const val USER_PREFERENCES_NAME = "user_preferences"
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -94,10 +132,18 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesGetContactsUseCase(
+    fun providesGetAllUserRequestsUseCase(
         repository: UserRequestRepository
     ): GetAllUserRequestsUseCase {
         return GetAllUserRequestsUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetAllCurrentUserRequestsUseCase(
+        repository: UserRequestRepository
+    ): GetAllCurrentUserRequestsUseCase {
+        return GetAllCurrentUserRequestsUseCaseImpl(repository)
     }
 
     @Provides
@@ -107,6 +153,39 @@ object AppModule {
     ): CreateUserRequestUseCase {
         return CreateUserRequestUseCaseImpl(repository)
     }
+    @Provides
+    @Singleton
+    fun providesUpdateUserRequestUseCase(
+        repository: UserRequestRepository
+    ): UpdateUserRequestUseCase {
+        return UpdateUserRequestUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetUserRequestUseCase(
+        repository: UserRequestRepository
+    ): GetUserRequestUseCase {
+        return GetUserRequestUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetUserByIdRequestUseCase(
+        repository: UserRequestRepository
+    ): GetUserRequestByIdUseCase {
+        return GetUserRequestByIdUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesDeleteUserRequestUseCase(
+        repository: UserRequestRepository
+    ): DeleteUserRequestUseCase {
+        return DeleteUserRequestUseCaseImpl(repository)
+    }
+
+
 
 
     //This is not a good way of instancing each datasource since we are creating multiple instances of the same database
@@ -175,22 +254,8 @@ object AppModule {
         return CheckIfUserProfileExistUseCaseImpl(repository)
     }
 
-    @Provides
-    @Singleton
-    fun providesUserDataStoreRepository(
-        dataSource: DataStore<Preferences>,
-        @ApplicationContext
-        context: Context
-    ): DataStoreRepository {
-        return DataStoreRepositoryImpl(dataSource,context)
-    }
-    @Provides
-    @Singleton
-    fun readUserIdUseCase(
-        repository: DataStoreRepository
-    ): ReadUserIdUseCase {
-        return ReadUserIdUseCaseImpl(repository)
-    }
+
+
 
     @Provides
     @Singleton
@@ -200,23 +265,186 @@ object AppModule {
         return GetUserIdUseCaseImpl(repository)
     }
 
+    @Provides
+    @Singleton
+    fun setUserIdUseCase(
+        repository: DataStoreRepository
+    ): SetUserIdUseCase {
+        return SetUserIdUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun getUserRoleUseCase(
+        repository: DataStoreRepository
+    ): GetUserRoleUseCase {
+        return GetUserRoleUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun setUserRoleUseCase(
+        repository: DataStoreRepository
+    ): SetUserRoleUseCase {
+        return SetUserRoleUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun clearUserIdUseCase(
+        repository: DataStoreRepository
+    ): ClearUserIdUseCase {
+        return ClearUserIdUseCaseImpl(repository)
+    }
+
+
+
 
 
     @Provides
     @Singleton
     fun provideFirebaseAuth() = FirebaseAuth.getInstance()
 
+
+    @Provides
+    @Singleton // Use appropriate scope
+    fun provideDataStoreRepository(dataStore: DataStore<Preferences>): DataStoreRepository {
+        return DataStoreRepositoryImpl(dataStore)
+    }
+
+
+
+    //--------------------------------------------------------------------------------------------
+
+
     @Provides
     @Singleton
-    fun providePreferencesDataStore(@ApplicationContext appContext: Context) : DataStore<androidx.datastore.preferences.core.Preferences> {
-        return PreferenceDataStoreFactory.create(
-            corruptionHandler = ReplaceFileCorruptionHandler(
-                produceNewData = {emptyPreferences()}
-            ),
-            migrations = listOf(SharedPreferencesMigration(appContext, USER_PREFERENCES_NAME)),
-            scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-            produceFile={appContext.preferencesDataStoreFile(USER_PREFERENCES_NAME)}
+    fun providesServiceProvidersDatasource(
+        @ApplicationContext
+        context: Context
+    ): ServiceProvidersDataSource {
+        return RoomServiceProviderDataSource(
+            dao = Room.databaseBuilder(
+                context,
+                CityGoDatabase::class.java,
+                CityGoDatabase.DATABASE_NAME
+            ).build().serviceProviderDao
         )
     }
+
+    @Provides
+    @Singleton
+    fun providesServiceProviderProfileRepository(
+        dataSource: ServiceProvidersDataSource
+    ): ServiceProviderProfileRepository {
+        return ServiceProviderProfileRepositoryImpl(dataSource)
+    }
+    @Provides
+    @Singleton
+    fun providesCreateServiceProviderProfileUseCase(
+        repository: ServiceProviderProfileRepository
+    ): CreateServiceProviderProfileUseCase {
+        return CreateServiceProviderProfileUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesUpdateServiceProviderStatusUseCase(
+        repository: ServiceProviderProfileRepository
+    ): UpdateServiceProviderStatusUseCase {
+        return UpdateServiceProviderStatusUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetServiceProviderStatusUseCase(
+        repository: ServiceProviderProfileRepository
+    ): GetServiceProviderProfileUseCase {
+        return GetServiceProviderProfileUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesDeleteServiceProviderProfileUseCase(
+        repository: ServiceProviderProfileRepository
+    ): DeleteServiceProviderProfileUseCase {
+        return DeleteServiceProviderProfileUseCaseImpl(repository)
+    }
+
+
+
+    @Provides
+    @Singleton
+    fun providesOfferDatasource(
+        @ApplicationContext
+        context: Context
+    ): OfferDataSource {
+        return RoomOfferDataSource(
+            dao = Room.databaseBuilder(
+                context,
+                CityGoDatabase::class.java,
+                CityGoDatabase.DATABASE_NAME
+            ).build().offerDao
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun providesOfferRepository(
+        dataSource: OfferDataSource
+    ): OfferRepository {
+        return OfferRepositoryImpl(dataSource)
+    }
+    @Provides
+    @Singleton
+    fun providesCreateOfferUseCase(
+        repository: OfferRepository
+    ): CreateOfferUseCase {
+        return CreateOfferUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetOfferUseCase(
+        repository: OfferRepository
+    ): GetOfferUseCase {
+        return GetOfferUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesUpdateOfferStatusUseCase(
+        repository: OfferRepository
+    ): UpdateOfferStatusUseCase {
+        return UpdateOfferStatusUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesHasOfferUseCase(
+        repository: OfferRepository
+    ): HasOfferUseCase {
+        return HasOfferUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetAllOffersUseCase(
+        repository: OfferRepository
+    ): GetAllOffersUseCase {
+        return GetAllOffersUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetAllMyOffersUseCase(
+        repository: OfferRepository
+    ): GetAllMyOffersUseCase {
+        return GetAllMyOffersUseCaseImpl(repository)
+    }
+
+
+
+
 
 }

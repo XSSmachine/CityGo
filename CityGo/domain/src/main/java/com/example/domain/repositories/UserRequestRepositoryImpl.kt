@@ -7,23 +7,30 @@ import com.example.repository.interfaces.UserRequestDataSource
 
 
 class UserRequestRepositoryImpl constructor(private val userRequestDataSource: UserRequestDataSource) : UserRequestRepository {
-    override suspend fun getAllUserRequests(userId:Int): List<UserRequestResponseModel> {
+    override suspend fun getAllUserRequests(userId: String): List<UserRequestResponseModel> {
         return userRequestDataSource.getAll(userId)
     }
 
-    override suspend fun getUserRequest(userId:Int,id: Int): UserRequestResponseModel? {
-        return userRequestDataSource.getOne(userId,id)
+    override suspend fun getAllUserRequestsForCurrentUser(userId:String): List<UserRequestResponseModel> {
+        return userRequestDataSource.getAllForCurrentUser(userId)
     }
 
-    override suspend fun deleteUserRequest(userId:Int,id: Int) {
+    override suspend fun getUserRequest(userId:String,id: Int): UserRequestResponseModel? {
+        return userRequestDataSource.getOne(userId,id)
+    }
+    override suspend fun getUserRequestById(id: Int): UserRequestResponseModel? {
+        return userRequestDataSource.getOneById(id)
+    }
+
+    override suspend fun deleteUserRequest(userId:String,id: Int) {
         return userRequestDataSource.delete(userId,id)
     }
 
-    override suspend fun updateUserRequest(userId:Int,id: Int, data: UserRequestRequestModel) {
+    override suspend fun updateUserRequest(userId:String,id: Int, data: UserRequestRequestModel) {
         return userRequestDataSource.update(userId,id, data)
     }
 
-    override suspend fun createUserRequest(userId:Int,data: UserRequestRequestModel) {
-        return userRequestDataSource.create(userId,data)
+    override suspend fun createUserRequest(data: UserRequestRequestModel) {
+        return userRequestDataSource.create(data)
     }
 }

@@ -1,15 +1,18 @@
 package com.hfad.model
 
+import android.net.Uri
+
 
 //dohvat iz baze
 data class UserRequestResponseModel(
     val id: Int,
     val userId: String,
-    val photo: String,
+    val photo: Uri,
     val description: String,
     val address1: Address,
     val address2: Address,
     val timeTable: String,
+    val date: String,
     val category: String,
     val extraWorker: Boolean,
     val price: Int
@@ -24,6 +27,7 @@ data class UserRequestRequestModel(
     val address1: Address,
     val address2: Address,
     val timeTable: String,
+    val date: String,
     val category: String,
     val extraWorker: Boolean,
     val price: Int
@@ -39,9 +43,10 @@ data class Address(
     val phoneNumber: String,
 )
 
+//-------------------------------------------------------------
 
 data class UserProfileResponseModel(
-    val id: Int,
+    val id: String,
     val name: String,
     val surname: String,
     val email: String?,
@@ -51,11 +56,78 @@ data class UserProfileResponseModel(
 )
 
 data class UserProfileRequestModel(
-    val id: Int? = null,
+    val id: String,
     val name: String,
     val surname: String,
     val email: String?,
     val phoneNumber: String,
     val profilePicture: String?,
     val stars: Double
+)
+
+//-------------------------------------------------------------
+data class ServiceProviderProfileResponseModel(
+
+    val id: String,
+    val name: String,
+    val surname: String,
+    val email: String,
+    val dateOfBirth:String,
+    val address: String,
+    val latitude: Double?,
+    val longitude: Double?,
+    val zipCode:String,
+    val city:String,
+    val country:String,
+    val phoneNumber: String,
+    val profilePicture: String,
+    val idPictureFront:String,
+    val idPictureBack:String,
+    val vehiclePicture:String,
+    val stars: Double,
+    val status:String
+)
+
+data class ServiceProviderProfileRequestModel(
+
+    val id: String,
+    val name: String,
+    val surname: String,
+    val email: String,
+    val dateOfBirth:String,
+    val address: String,
+    val latitude: Double?,
+    val longitude: Double?,
+    val zipCode:String,
+    val city:String,
+    val country:String,
+    val phoneNumber: String,
+    val profilePicture: String,
+    val idPictureFront:String,
+    val idPictureBack:String,
+    val vehiclePicture:String,
+    val stars: Double,
+    val status:String
+)
+
+
+//----------------------------------------------------------------------
+
+data class OfferResponseModel(
+    val id: Int,
+    val userRequestId: Int,
+    val serviceProviderId: String,
+    val price: Int?,
+    val timeTable: String?,
+    val status: String
+)
+
+
+data class OfferRequestModel(
+    val id: Int?=null,
+    val userRequestId: Int,
+    val serviceProviderId: String,
+    val price: Int?,
+    val timeTable: String?,
+    val status: String
 )

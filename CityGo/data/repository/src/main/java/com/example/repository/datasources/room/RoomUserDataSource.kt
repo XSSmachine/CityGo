@@ -5,7 +5,6 @@ import com.example.repository.datasources.room.entities.toUserProfileResponseMod
 import com.example.repository.datasources.room.entities.toUserProfileRoomEntity
 import com.example.repository.interfaces.UserDao
 import com.example.repository.interfaces.UsersDataSource
-import com.google.firebase.auth.FirebaseUser
 import com.hfad.model.UserProfileRequestModel
 import com.hfad.model.UserProfileResponseModel
 
@@ -29,6 +28,7 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @author Karlo Kovačević
      */
     override suspend fun createUserWithPhoneNumber(
+        userId: String,
         phoneNumber: String,
         name: String,
         surname: String,
@@ -36,6 +36,7 @@ class RoomUserDataSource constructor(private val dao: UserDao
         stars:Double
     ) {
         val user = UserProfileRequestModel(
+            id = userId,
             name = name,
             surname = surname,
             email = email,
@@ -60,12 +61,12 @@ class RoomUserDataSource constructor(private val dao: UserDao
     /**
      * Retrieves a user's profile information by their phone number
      *
-     * @param phoneNumber The phone number of the user to retrieve
+     * @param userId The phone number of the user to retrieve
      * @return The user's profile information if found, null otherwise
      * @author Karlo Kovačević
      */
-    override suspend fun getUserByPhoneNumber(phoneNumber: String): UserProfileResponseModel? {
-        return dao.getByPhoneNumber(phoneNumber)?.toUserProfileResponseModel()
+    override suspend fun getUserById(userId: String): UserProfileResponseModel? {
+        return dao.getById(userId)?.toUserProfileResponseModel()
     }
 
     /**
@@ -75,7 +76,7 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @param data The updated profile information of the user
      * @author Karlo Kovačević
      */
-    override suspend fun updateUser(userId: Int, data: UserProfileRequestModel) {
+    override suspend fun updateUser(userId: String, data: UserProfileRequestModel) {
         dao.updateUser(userId, data.name, data.surname, data.profilePicture ?: "")
     }
 
@@ -85,7 +86,7 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @param userId The ID of the user to delete
      * @author Karlo Kovačević
      */
-    override suspend fun deleteUser(userId: Int) {
+    override suspend fun deleteUser(userId: String) {
         dao.deleteUser(userId)
     }
 }

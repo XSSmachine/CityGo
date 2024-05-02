@@ -7,7 +7,7 @@ import com.hfad.model.UserProfileRequestModel
 
 class UpdateUserProfileUseCaseImpl constructor(private val userProfileRepository: UserProfileRepository) :
     UpdateUserProfileUseCase {
-    override suspend fun execute(userId: Int, data: UserProfileRequestModel) {
-        return userProfileRepository.updateUser(userId,data.name,data.surname,data.email)
+    override suspend fun execute(userId: String, data: UserProfileRequestModel) {
+        return userProfileRepository.updateUser(userId,data.name,data.surname,data.email!!,data.profilePicture)
     }
 }

@@ -9,6 +9,6 @@ import com.hfad.model.UserProfileRequestModel
 class CreateUserProfileUseCaseImpl constructor(private val userProfileRepository: UserProfileRepository) :
     CreateUserProfileUseCase {
     override suspend fun execute(data: UserProfileRequestModel) {
-        return userProfileRepository.createUser(data.name,data.surname,data.phoneNumber,data.email)
+        userProfileRepository.createUser(data.id,data.name,data.surname,data.phoneNumber,data.email)
     }
 }
