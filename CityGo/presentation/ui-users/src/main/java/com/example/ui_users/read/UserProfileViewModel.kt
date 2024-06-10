@@ -25,9 +25,18 @@ import com.example.domain.interfaces.userprofile_usecases.GetUserProfileUseCase
 import com.example.domain.interfaces.userprofile_usecases.SetUserRoleUseCase
 import com.example.domain.interfaces.userprofile_usecases.UpdateUserProfileUseCase
 import com.google.firebase.auth.FirebaseAuth
+import com.hfad.model.BasicError
+import com.hfad.model.Error
+import com.hfad.model.Failure
 import com.hfad.model.ServiceProviderProfileRequestModel
 import com.hfad.model.ServiceProviderProfileResponseModel
+import com.hfad.model.Success
+import com.hfad.model.Triumph
 import com.hfad.model.UserProfileRequestModel
+import com.hfad.model.UserProfileResponseModel
+import com.hfad.model.ViewState
+import com.hfad.model.onFailure
+import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -70,8 +79,15 @@ class UserProfileViewModel @Inject constructor(
     private val _idCardFrontPicture = mutableStateOf<Uri?>(null)
     private val _idCardBackPicture = mutableStateOf<Uri?>(null)
 
+    protected val _viewState = MutableLiveData<ViewState<UserProfileResponseModel>>()
+    val viewState: LiveData<ViewState<UserProfileResponseModel>>
+        get() = _viewState
+
+    protected val _providerViewState = MutableLiveData<ViewState<ServiceProviderProfileResponseModel>>()
+    val providerViewState: LiveData<ViewState<ServiceProviderProfileResponseModel>>
+        get() = _providerViewState
+
     var state by mutableStateOf(ProfileState())
-    var providerState by mutableStateOf(ServiceProviderProfileState())
 
     init {
         viewModelScope.launch {
@@ -203,17 +219,21 @@ class UserProfileViewModel @Inject constructor(
     }
 
 
-    fun updateUserProfile(){
+    fun updateUserProfile(data:UserProfileResponseModel){
         viewModelScope.launch {
             updateUserProfileUseCase.execute(getIdValue(),
                 UserProfileRequestModel(
                     getIdValue(),
-                    name=name,
-                    surname=surname,
-                    email=email,
+                    name=data.name,
+                    surname=data.surname,
+                    email=data.email,
                     phoneNumber = "",
-                    profilePicture=profilePicture,
-                    stars = 0.0))
+                    profilePicture=data.profilePicture!!,
+                    stars = 4.00,
+                    sid = null,
+                    sync = null,
+                    requests = emptyList()
+                    ))
         }
     }
 
@@ -227,14 +247,13 @@ class UserProfileViewModel @Inject constructor(
 
 
     fun getServiceProviderApplicationStatus(): String {
-
-
         viewModelScope.launch {
-            val application = getServiceProviderStatusUseCase.execute(getIdValue())
-            if (application != null) {
-                setStatusLiveData(application.status)
-            } else {
-                setStatusLiveData("")
+            try {
+                getServiceProviderStatusUseCase.execute(getIdValue())
+                    .onSuccess { setStatusLiveData(it.status)}
+                    .onFailure { setStatusLiveData("") }
+            }catch (e: Exception){
+                Failure(BasicError(Throwable(e)))
             }
         }
 
@@ -243,28 +262,33 @@ class UserProfileViewModel @Inject constructor(
 
 
     suspend fun createServiceProviderProfile(){
-        createServiceProviderProfileUseCase.execute(
-            ServiceProviderProfileRequestModel(
-                id = state.id,
-                name = spname,
-                surname = spsurname,
-                email = spemail,
-                dateOfBirth = dateOfBirth,
-                address = address,
-                latitude = null,
-                longitude = null,
-                zipCode = zipCode,
-                city = city,
-                country = country,
-                phoneNumber = state.phoneNum,
-                profilePicture = selfiePicture.toString(),
-                idPictureFront = idCardFrontPicture.toString(),
-                idPictureBack = idCardBackPicture.toString(),
-                vehiclePicture = vehiclePicture.toString(),
-                stars=state.stars,
-                status="Pending"
-        )
-        )
+        viewModelScope.launch {
+            createServiceProviderProfileUseCase.execute(
+                ServiceProviderProfileRequestModel(
+                    id = state.id,
+                    name = spname,
+                    surname = spsurname,
+                    email = spemail,
+                    dateOfBirth = dateOfBirth,
+                    address = address,
+                    latitude = null,
+                    longitude = null,
+                    zipCode = zipCode,
+                    city = city,
+                    country = country,
+                    phoneNumber = state.phoneNum,
+                    profilePicture = selfiePicture.toString(),
+                    idPictureFront = idCardFrontPicture.toString(),
+                    idPictureBack = idCardBackPicture.toString(),
+                    vehiclePicture = vehiclePicture.toString(),
+                    stars = state.stars,
+                    status = "Pending",
+                    sid = null,
+                    sync = null,
+                    offers = null
+                )
+            )
+        }
     }
 
     fun updateServiceProviderStatus(status:String){
@@ -281,38 +305,51 @@ class UserProfileViewModel @Inject constructor(
 
     @SuppressLint("SuspiciousIndentation")
     suspend fun getProfileDetails(UserId:String){
-        val user = getUserProfileUseCase.execute(UserId)
-        if (user!=null)
-        state = state.copy(
-            id = user.id,
-            name=user.name,
-            surname=user.surname,
-            email=user.email.orEmpty(),
-            stars = user.stars,
-            phoneNum = user.phoneNumber,
-            profilePicture = user.profilePicture.toString()
 
-        )
-        setProfileValues(state)
+            getUserProfileUseCase.execute(UserId)
+                .onSuccess {
+                    state = state.copy(
+                        id = it.id,
+                        name=it.name,
+                        surname=it.surname,
+                        email=it.email.orEmpty(),
+                        stars = it.stars,
+                        phoneNum = it.phoneNumber,
+                        profilePicture = it.profilePicture.toString()
+
+                    )
+                    _viewState.postValue(Triumph(it))
+
+                }
+                .onFailure { _viewState.postValue(Error(it,"user details")) }
+
+//        val user = getUserProfileUseCase.execute(UserId)
+//        if (user!=null)
+
+//        setProfileValues(state)
 
     }
 
     @SuppressLint("SuspiciousIndentation")
     suspend fun getServiceProviderProfileDetails(UserId:String){
-        val user = getServiceProviderStatusUseCase.execute(UserId)
-        if (user!=null)
-            providerState = providerState.copy(
-                id = user.id,
-                name=user.name,
-                surname=user.surname,
-                email=user.email,
-                stars = user.stars,
-                dateOfBirth=user.dateOfBirth,
-                address=user.address,
-                profilePicture=user.vehiclePicture,
+        getServiceProviderStatusUseCase.execute(UserId)
+            .onSuccess { _providerViewState.postValue(Triumph(it)) }
+            .onFailure { _providerViewState.postValue(Error(it,"provider details error")) }
 
-
-            )
+//        val user = getServiceProviderStatusUseCase.execute(UserId)
+//        if (user!=null)
+//            providerState = providerState.copy(
+//                id = user.id,
+//                name=user.name,
+//                surname=user.surname,
+//                email=user.email,
+//                stars = user.stars,
+//                dateOfBirth=user.dateOfBirth,
+//                address=user.address,
+//                profilePicture=user.vehiclePicture,
+//
+//
+//            )
     }
 
 
@@ -390,3 +427,16 @@ data class ServiceProviderProfileState(
     val stars:Double=0.0,
 
     )
+
+fun ServiceProviderProfileResponseModel.toServiceProviderProfileState(): ServiceProviderProfileState {
+    return ServiceProviderProfileState(
+        id = id,
+        name = name,
+        surname = surname,
+        email = email,
+        dateOfBirth = dateOfBirth,
+        address = address,
+        profilePicture = profilePicture,
+        stars = stars
+    )
+}

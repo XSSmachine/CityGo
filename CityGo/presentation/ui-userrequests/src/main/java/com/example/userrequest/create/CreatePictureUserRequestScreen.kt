@@ -101,12 +101,10 @@ fun CreatePictureUserRequestScreen(
 
     )
 
-    var capturedImageUri by remember {
-        mutableStateOf<Uri>(Uri.parse("android.resource://CityGo/presentation/ui-userrequests/src/main/res/drawable/baseline_image_24"))
-    }
+
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            capturedImageUri = uri
+            createUserRequestViewModel.setCapturedImageUri(uri)
             createUserRequestViewModel.onImageCaptured(uri)
         } else {
             Toast.makeText(context, "Failed to capture image", Toast.LENGTH_SHORT).show()

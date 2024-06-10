@@ -5,8 +5,15 @@ import com.example.repository.datasources.room.entities.toUserProfileResponseMod
 import com.example.repository.datasources.room.entities.toUserProfileRoomEntity
 import com.example.repository.interfaces.UserDao
 import com.example.repository.interfaces.UsersDataSource
+import com.hfad.model.BasicError
+import com.hfad.model.ErrorCode
+import com.hfad.model.Failure
+import com.hfad.model.RepoResult
+import com.hfad.model.Success
 import com.hfad.model.UserProfileRequestModel
 import com.hfad.model.UserProfileResponseModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * Room implementation of the UsersDataSource interface
@@ -33,18 +40,27 @@ class RoomUserDataSource constructor(private val dao: UserDao
         name: String,
         surname: String,
         email: String?,
-        stars:Double
-    ) {
+        stars:Double,
+        sid:String?
+    ): RepoResult<Unit> {
         val user = UserProfileRequestModel(
             id = userId,
             name = name,
             surname = surname,
             email = email,
             phoneNumber = phoneNumber,
-            profilePicture = null,
-            stars = 3.50
+            profilePicture = "",
+            stars = 3.50,
+            sid = sid,
+            sync = System.currentTimeMillis(),
+            requests = emptyList()
         )
-        dao.createUser(user.toUserProfileRoomEntity())
+        return try {
+            dao.createUser(user.toUserProfileRoomEntity())
+            Success(Unit) // Return Success with Unit since there's no body in the response
+        } catch (e: Exception) {
+            Failure(BasicError(e, ErrorCode.ERROR))
+        }
     }
 
     /**
@@ -54,8 +70,11 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @return True if the user exists, false otherwise
      * @author Karlo Kovačević
      */
-    override suspend fun userExists(phoneNumber: String): Boolean {
-        return dao.userExists(phoneNumber)
+    override suspend fun userExists(phoneNumber: String): RepoResult<Boolean> = try{
+        val exists = dao.userExists(phoneNumber)
+        Success(exists)
+    }catch (e: Exception){
+        Failure(BasicError(e))
     }
 
     /**
@@ -65,10 +84,13 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @return The user's profile information if found, null otherwise
      * @author Karlo Kovačević
      */
-    override suspend fun getUserById(userId: String): UserProfileResponseModel? {
-        return dao.getById(userId)?.toUserProfileResponseModel()
+    override suspend fun getUserById(userId: String): RepoResult<UserProfileResponseModel> = try {
+        val user = dao.getById(userId).toUserProfileResponseModel()
+        Success(user)
+    }catch (e: Exception)
+    {
+        Failure(BasicError(e))
     }
-
     /**
      * Updates the profile information of a user
      *
@@ -76,8 +98,13 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @param data The updated profile information of the user
      * @author Karlo Kovačević
      */
-    override suspend fun updateUser(userId: String, data: UserProfileRequestModel) {
-        dao.updateUser(userId, data.name, data.surname, data.profilePicture ?: "")
+    override suspend fun updateUser(userId: String, data: UserProfileRequestModel): RepoResult<Unit> {
+        return try {
+            dao.updateUser(userId, data.name, data.surname, data.profilePicture ?: "")
+            Success(Unit) // Return Success with Unit since there's no body in the response
+        } catch (e: Exception) {
+            Failure(BasicError(e, ErrorCode.ERROR))
+        }
     }
 
     /**
@@ -86,7 +113,12 @@ class RoomUserDataSource constructor(private val dao: UserDao
      * @param userId The ID of the user to delete
      * @author Karlo Kovačević
      */
-    override suspend fun deleteUser(userId: String) {
-        dao.deleteUser(userId)
+    override suspend fun deleteUser(userId: String): RepoResult<Unit> {
+        return try {
+            dao.deleteUser(userId)
+            Success(Unit) // Return Success with Unit since there's no body in the response
+        } catch (e: Exception) {
+            Failure(BasicError(e, ErrorCode.ERROR))
+        }
     }
 }

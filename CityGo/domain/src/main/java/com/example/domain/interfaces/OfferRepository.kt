@@ -1,17 +1,23 @@
 package com.example.domain.interfaces
 
+import com.hfad.model.RepoResult
 import com.hfad.model.OfferRequestModel
 import com.hfad.model.OfferResponseModel
-import com.hfad.model.UserRequestRequestModel
-import com.hfad.model.UserRequestResponseModel
+
+interface NullableOfferModel{
+    val model : OfferResponseModel?
+}
 
 interface OfferRepository {
-    suspend fun getAllOffers(userRequestId: Int): List<OfferResponseModel>
-    suspend fun getAllMyOffers(serviceProviderId: String): List<OfferResponseModel>
-    suspend fun getOffer(userRequestId: Int,serviceProviderId: String,): OfferResponseModel?
-    suspend fun hasOffer(userRequestId: Int,serviceProviderId: String,): Int
-    suspend fun deleteOffer(userRequestId: Int,serviceProviderId: String,)
-    suspend fun updateOffer(userRequestId: Int,serviceProviderId: String, offer: OfferRequestModel)
-    suspend fun updateOfferStatus( userRequestId: Int,serviceProviderId: String, status: String)
-    suspend fun createOffer(offer: OfferRequestModel)
+    suspend fun getAllOffers(userRequestUIID: String): RepoResult<List<OfferResponseModel>>
+    suspend fun getAllMyOffers(serviceProviderId: String): RepoResult<List<OfferResponseModel>>
+    suspend fun getOffer(sid: String): RepoResult<OfferResponseModel>
+    suspend fun getOfferByUserRequestId(userRequestUIID: String): RepoResult<OfferResponseModel>
+    suspend fun hasOffer(sid: String): RepoResult<Int>
+    suspend fun deleteOffer(sid: String):RepoResult<Unit>
+    suspend fun createOffer(offer: OfferRequestModel):RepoResult<Unit>
+    suspend fun updateOfferStatus(sid: String, status: String): RepoResult<Unit>
+    suspend fun updateOffer(sid: String, offer: OfferRequestModel): RepoResult<Unit>
+
+    suspend fun checkCreatedOffers(userRequestUIID: String,providerId : String): RepoResult<Boolean>
 }

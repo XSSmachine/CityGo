@@ -32,7 +32,10 @@ data class ServiceProviderProfileRoomEntity(
     val idPictureBack:String,
     val vehiclePicture:String,
     val stars: Double,
-    val status:String
+    val status:String,
+
+    val sid: String?,
+    val sync:Long?
 )
 
 //Later think about adding statistics and separating sensitive personal data to different table for safety,
@@ -64,7 +67,11 @@ fun ServiceProviderProfileRoomEntity.toServiceProviderProfileResponseModel(): Se
         idPictureBack=idPictureBack,
         vehiclePicture=vehiclePicture,
         stars=stars,
-        status=status)
+        status=status,
+        sid=sid,
+        sync=sync,
+        offers = null
+        )
 
 
 
@@ -90,6 +97,8 @@ fun ServiceProviderProfileRequestModel.toServiceProviderProfileRoomEntity(): Ser
         idPictureBack=idPictureBack,
         vehiclePicture=vehiclePicture,
         stars=stars,
-        status=status
+        status=status,
+        sid=sid,
+        sync=sync
     )
 }

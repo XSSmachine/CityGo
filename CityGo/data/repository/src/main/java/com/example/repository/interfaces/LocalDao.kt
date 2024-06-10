@@ -10,6 +10,7 @@ import com.example.repository.datasources.room.entities.OfferRoomEntity
 import com.example.repository.datasources.room.entities.ServiceProviderProfileRoomEntity
 import com.example.repository.datasources.room.entities.UserProfileRoomEntity
 import com.example.repository.datasources.room.entities.UserRequestRoomEntity
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Room database class for the CityGo application.
@@ -17,7 +18,7 @@ import com.example.repository.datasources.room.entities.UserRequestRoomEntity
  *
  * @author Karlo Kovačević
  */
-@Database(entities = [UserRequestRoomEntity::class, UserProfileRoomEntity::class,ServiceProviderProfileRoomEntity::class,OfferRoomEntity::class], version = 5)
+@Database(entities = [UserRequestRoomEntity::class, UserProfileRoomEntity::class,ServiceProviderProfileRoomEntity::class,OfferRoomEntity::class], version = 6)
 abstract class CityGoDatabase : RoomDatabase() {
     /**
      * Provides access to the DAO interface for UserRequestRoomEntity.
@@ -45,37 +46,37 @@ interface UserRequestDao {
     /**
      * Retrieves all user requests from the database.
      */
-    @Query("SELECT * FROM user_requests WHERE user_id != :userId")
-    suspend fun getAll(userId: String): List<UserRequestRoomEntity>
+    @Query("SELECT * FROM user_requests ORDER BY 1 desc")
+    suspend fun getAll(): List<UserRequestRoomEntity>
 
     /**
      * Retrieves all user requests from the database for current user.
      */
-    @Query("SELECT * FROM user_requests WHERE user_id=:userId")
-    suspend fun getAllForCurrentUser(userId:String): List<UserRequestRoomEntity>
+    @Query("SELECT * FROM user_requests WHERE user_id=:userId ORDER BY 1 desc")
+     suspend fun getAllForCurrentUser(userId:String): List<UserRequestRoomEntity>
 
     /**
      * Retrieves a user request by its ID from the database.
      */
-    @Query("SELECT * FROM user_requests WHERE id = :id and user_id=:userId")
-    suspend fun getByUserId(id: Int,userId: String): UserRequestRoomEntity?
+    @Query("SELECT * FROM user_requests WHERE uuid = :uuid and user_id=:userId")
+    suspend fun getByUserId(uuid: String,userId: String): UserRequestRoomEntity
 
 
-    @Query("SELECT * FROM user_requests WHERE id = :id")
-    suspend fun getById(id: Int): UserRequestRoomEntity?
+    @Query("SELECT * FROM user_requests WHERE uuid = :id")
+    suspend fun getById(id: String): UserRequestRoomEntity
 
     /**
      * Deletes a user request by its ID from the database.
      */
-    @Query("DELETE FROM user_requests WHERE id = :id and user_id=:userId")
-    suspend fun deleteById(id: Int,userId: String)
+    @Query("DELETE FROM user_requests WHERE uuid = :uuid and user_id=:userId")
+    suspend fun deleteById(uuid: String,userId: String)
 
     /**
      * Updates the description of a user request.
      */
-    @Query("UPDATE user_requests SET photo=:photo, description = :description, address1_addressName=:address1Name, address1_latitude=:address1Latitude, address1_longitude=:address1Longitude, address1_liftStairs=:address1LiftStairs, address1_floor=:address1Floor, address1_doorCode=:address1DoorCode, address1_phoneNumber=:address1PhoneNumber, address2_addressName=:address2Name, address2_latitude=:address2Latitude, address2_longitude=:address2Longitude, address2_liftStairs=:address2LiftStairs, address2_floor=:address2Floor, address2_doorCode=:address2DoorCode, address2_phoneNumber=:address2PhoneNumber,timeTable=:timeTable,category=:category, extraWorker=:extraWorker,price=:price WHERE id = :id AND user_id=:userId")
+    @Query("UPDATE user_requests SET photo=:photo, description = :description, address1_addressName=:address1Name, address1_latitude=:address1Latitude, address1_longitude=:address1Longitude, address1_liftStairs=:address1LiftStairs, address1_floor=:address1Floor, address1_doorCode=:address1DoorCode, address1_phoneNumber=:address1PhoneNumber, address2_addressName=:address2Name, address2_latitude=:address2Latitude, address2_longitude=:address2Longitude, address2_liftStairs=:address2LiftStairs, address2_floor=:address2Floor, address2_doorCode=:address2DoorCode, address2_phoneNumber=:address2PhoneNumber,timeTable=:timeTable,category=:category, extraWorker=:extraWorker,price=:price WHERE uuid = :uuid AND user_id=:userId")
     suspend fun updateUserRequest(
-        id: Int,
+        uuid: String,
         userId: String,
         photo: String,
         description: String,
@@ -134,12 +135,12 @@ interface UserDao {
      * Retrieves a user profile by their phone number from the database.
      */
     @Query("SELECT * FROM users WHERE id = :userId")
-    suspend fun getById(userId: String): UserProfileRoomEntity?
+    suspend fun getById(userId: String): UserProfileRoomEntity
 
     /**
      * Checks if a user with the given phone number exists in the database.
      */
-    @Query("SELECT COUNT(*) FROM users WHERE phoneNumber = :phoneNum")
+    @Query("SELECT EXISTS(SELECT * FROM users WHERE phoneNumber = :phoneNum)")
     suspend fun userExists(phoneNum: String): Boolean
 }
 
@@ -193,7 +194,7 @@ interface ServiceProviderDao {
      * Retrieves a service provider profile by their phone number from the database.
      */
     @Query("SELECT * FROM workers WHERE cygo_id = :cygoId")
-    suspend fun getServiceProviderById(cygoId: String): ServiceProviderProfileRoomEntity?
+    suspend fun getServiceProviderById(cygoId: String): ServiceProviderProfileRoomEntity
 
     /**
      * Checks if a service provider with the given phone number exists in the database.
@@ -214,41 +215,44 @@ interface OfferDao {
     /**
      * Updates the profile information of a service provider in the database.
      */
-    @Query("UPDATE offers SET price = :price, timeTable = :timeTable, status = :status WHERE userRequest_id=:userRequestId and serviceProvider_id=:serviceProviderId")
+    @Query("UPDATE offers SET price = :price, timeTable = :timeTable, status = :status WHERE userRequest_uuid=:userRequestUIID and serviceProvider_id=:serviceProviderId")
     suspend fun updateOffer(
-        userRequestId: Int,
+        userRequestUIID: String,
         serviceProviderId: String,
         price: Int?,
         timeTable: String,
         status: String
     )
 
-    @Query("UPDATE offers SET status=:status WHERE userRequest_id=:userRequestId and serviceProvider_id=:serviceProviderId")
+    @Query("UPDATE offers SET status=:status WHERE userRequest_uuid=:userRequestUIID and serviceProvider_id=:serviceProviderId")
     suspend fun updateOfferStatus(
-        userRequestId: Int,
+        userRequestUIID: String,
         serviceProviderId: String,
         status: String
     )
+
+    @Query("SELECT EXISTS(SELECT * FROM offers WHERE userRequest_uuid = :requestUIID)")
+    suspend fun offerExists(requestUIID: String): Boolean
 
 
     /**
      * Deletes a service provider by its ID from the database.
      */
-    @Query("DELETE FROM offers WHERE userRequest_id=:userRequestId and serviceProvider_id=:serviceProviderId")
+    @Query("DELETE FROM offers WHERE userRequest_uuid=:userRequestUIID and serviceProvider_id=:serviceProviderId")
     suspend fun deleteOffer(
-                                      userRequestId: Int,
+                                      userRequestUIID: String,
                                       serviceProviderId: String,)
 
     /**
      * Retrieves a service provider profile by their phone number from the database.
      */
-    @Query("SELECT * FROM offers WHERE userRequest_id=:userRequestId and serviceProvider_id=:serviceProviderId")
-    suspend fun getSingleOffer(userRequestId: Int,
-                                       serviceProviderId: String,): OfferRoomEntity?
+    @Query("SELECT * FROM offers WHERE userRequest_uuid=:userRequestUIID and serviceProvider_id=:serviceProviderId")
+    suspend fun getSingleOffer(userRequestUIID: String,
+                                       serviceProviderId: String): OfferRoomEntity
 
 
-    @Query("SELECT COUNT(*) FROM offers WHERE userRequest_id=:userRequestId AND serviceProvider_id=:serviceProviderId")
-    suspend fun hasOffer(userRequestId: Int, serviceProviderId: String): Int
+    @Query("SELECT COUNT(*) FROM offers WHERE userRequest_uuid=:userRequestUIID AND serviceProvider_id=:serviceProviderId")
+    suspend fun hasOffer(userRequestUIID: String, serviceProviderId: String): Int
 
     /**
      * Checks if a service provider with the given phone number exists in the database.
@@ -256,7 +260,7 @@ interface OfferDao {
     @Query("SELECT * FROM offers WHERE serviceProvider_id=:serviceProviderId ")
     suspend fun getAllMyOffers(serviceProviderId: String): List<OfferRoomEntity>
 
-    @Query("SELECT * FROM offers WHERE userRequest_id=:userRequestId")
-    suspend fun getAllOffers(userRequestId: Int): List<OfferRoomEntity>
+    @Query("SELECT * FROM offers WHERE userRequest_uuid=:userRequestUIID")
+    suspend fun getAllOffers(userRequestUIID: String): List<OfferRoomEntity>
 }
 

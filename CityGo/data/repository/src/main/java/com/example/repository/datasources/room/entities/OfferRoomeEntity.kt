@@ -6,19 +6,23 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.hfad.model.OfferRequestModel
 import com.hfad.model.OfferResponseModel
+import java.util.UUID
 
 
 @Entity(tableName = "offers")
 data class OfferRoomEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int? = null,
-    @ColumnInfo(name = "userRequest_id")
-    val userRequestId: Int,
+    @ColumnInfo(name = "userRequest_uuid")
+    val userRequestUUID: String,
     @ColumnInfo(name = "serviceProvider_id")
     val serviceProviderId: String,
     val price: Int?,
     val timeTable: String?,
-    val status: String
+    val status: String,
+
+    val sid: String?,
+    val sync:Long?
 
 )
 
@@ -32,11 +36,13 @@ data class OfferRoomEntity(
 fun OfferRoomEntity.toOfferResponseModel(): OfferResponseModel {
     return OfferResponseModel(
         id = id!!,
-        userRequestId =userRequestId,
+        userRequestUUID =userRequestUUID,
         serviceProviderId = serviceProviderId,
         price =price,
         timeTable = timeTable,
         status = status,
+        sid=sid,
+        sync=sync
 
     )
 }
@@ -45,10 +51,12 @@ fun OfferRoomEntity.toOfferResponseModel(): OfferResponseModel {
 fun OfferRequestModel.toOfferRoomEntity(): OfferRoomEntity{
     return OfferRoomEntity(
         id = id,
-        userRequestId =userRequestId,
+        userRequestUUID =userRequestUUID,
         serviceProviderId = serviceProviderId,
         price =price,
         timeTable = timeTable,
         status = status,
+        sid=sid,
+        sync=sync
     )
 }

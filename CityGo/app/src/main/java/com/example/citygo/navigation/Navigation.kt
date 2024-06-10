@@ -1,9 +1,6 @@
 package com.example.citygo.navigation
 
-import android.util.Log
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -11,13 +8,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ui_home.HomeScreen
 import com.example.ui_home.HomeViewModel
 import com.example.ui_users.login.CreateUserDialogScreen
 import com.example.ui_users.login.LoginScreen
-import com.example.ui_users.login.MainEvent
 import com.example.ui_users.login.UserLoginViewModel
 import com.example.ui_users.read.PendingScreen
 import com.example.ui_users.read.ServiceProviderProfileScreen
@@ -28,6 +23,7 @@ import com.example.userrequest.create.CreateDetailsUserRequestScreen
 import com.example.userrequest.create.CreatePictureUserRequestScreen
 import com.example.userrequest.create.CreatePriceUserRequestScreen
 import com.example.userrequest.create.CreateUserRequestViewModel
+import com.example.userrequest.details.AllDetailScreen
 import com.example.userrequest.details.DetailScreen
 import com.example.userrequest.details.DetailUserRequestViewModel
 import com.example.userrequest.read.ReadAllOffersScreen
@@ -37,10 +33,6 @@ import com.example.userrequest.readAll.ReadAllUserRequestScreen
 import com.example.userrequest.readAll.ReadAllUserRequestsViewModel
 import com.example.userrequest.update.UpdateUserRequestScreen
 import com.example.userrequest.update.UpdateUserRequestViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 @Composable
  fun Router(navController: NavHostController,
@@ -125,6 +117,11 @@ import kotlinx.coroutines.runBlocking
                         route = "${"allOffers"}/$requestId"
                     )
                 },
+                onCygoOfferClick= {userId,sid ->
+                    navController.navigateToSingleTop(
+                        route = "${"alldetail"}/$userId/$sid "
+                    )
+                },
                 listContactsViewModel,
             )
         }
@@ -150,21 +147,23 @@ import kotlinx.coroutines.runBlocking
         composable(
             route="${"detail"}/{requestId}/{userId}",
             arguments = listOf(navArgument("requestId"){
-                NavType.LongType
-                defaultValue=-1L
+                NavType.StringType
+                defaultValue=""
             },navArgument("userId"){
                 NavType.StringType
                 defaultValue=""
-            })
+            }
+
+            )
         ){backStackEntry ->
-            val requestId = backStackEntry.arguments?.getLong("requestId") ?: -1L
+            val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             DetailScreen(
                 detailUserRequestViewModel,
                 requestId = requestId,
-                userId=userId,
+                userId =userId,
                 navigateUp = {navController.navigateUp()},
-                onUserRequestUpdate = {requestId, userId ->
+                onUserRequestUpdate = { requestId, userId ->
                     navController.navigateToSingleTop(
                         route = "${"update"}/$requestId/$userId"
                     )
@@ -172,21 +171,47 @@ import kotlinx.coroutines.runBlocking
             )
 
         }
+
+
+        composable(
+            route="${"alldetail"}/{userId}/{sid}",
+            arguments = listOf(navArgument("userId"){
+                NavType.StringType
+                defaultValue=""
+            },navArgument("sid"){
+                NavType.StringType
+                defaultValue=""
+            }
+
+            )
+        ){backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val sid = backStackEntry.arguments?.getString("sid") ?: ""
+            AllDetailScreen(
+                detailUserRequestViewModel,
+                userId =userId,
+                sid = sid,
+                navigateUp = {navController.navigateUp()},
+
+            )
+
+        }
+
         composable(
             route="${"update"}/{requestId}/{userId}",
             arguments = listOf(navArgument("requestId"){
-                NavType.LongType
-                defaultValue=-1L
+                NavType.StringType
+                defaultValue=""
             },navArgument("userId"){
                 NavType.StringType
                 defaultValue=""
             })
         ){backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("requestId") ?: -1L
+            val id = backStackEntry.arguments?.getString("requestId") ?: ""
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             UpdateUserRequestScreen(
                 updateUserRequestViewModel,
-                requestId = id.toInt(),
+                requestId = id,
                 userId = userId,
                 navigateUp = {navController.popBackStack()}
             )
@@ -215,9 +240,9 @@ import kotlinx.coroutines.runBlocking
             val readAllUserRequestsViewModel:ReadAllUserRequestsViewModel = hiltViewModel()
             ReadAllUserRequestScreen(
                 navController = navController,
-                onUserRequestClick = {userId,requestId ->
+                onUserRequestClick = {userId,sid ->
                     navController.navigateToSingleTop(
-                        route = "${"detail"}/$userId/$requestId"
+                        route = "${"alldetail"}/$userId/$sid "
                     )
                 },
                 readAllUserRequestsViewModel
@@ -225,17 +250,17 @@ import kotlinx.coroutines.runBlocking
         }
 
         composable(
-            route="${"allOffers"}/{requestId}",
+            route="${"allOffers"}/{sid}",
             arguments = listOf(navArgument("requestId"){
-                NavType.LongType
-                defaultValue=-1L
+                NavType.StringType
+                defaultValue=""
             })
         ){backStackEntry ->
-            val requestId = backStackEntry.arguments?.getLong("requestId") ?: -1L
+            val sid = backStackEntry.arguments?.getString("sid") ?: ""
             val readUserRequestViewModel:ReadUserRequestViewModel = hiltViewModel()
             ReadAllOffersScreen(
                 navController,
-                requestId = requestId,
+                sid = sid,
                 navigateUp = {navController.popBackStack()}
 
 

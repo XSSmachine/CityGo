@@ -14,7 +14,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.auth
+import com.hfad.model.BasicError
+import com.hfad.model.Failure
+import com.hfad.model.Success
 import com.hfad.model.UserProfileRequestModel
+import com.hfad.model.onFailure
+import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
@@ -38,7 +43,6 @@ class UserLoginViewModel @Inject constructor(
     private val _name = mutableStateOf("")
     private val _surname = mutableStateOf("")
     private val _email = mutableStateOf("")
-
 
 
     fun cacheName(
@@ -101,8 +105,11 @@ class UserLoginViewModel @Inject constructor(
                 surname = _surname.value,
                 phoneNumber ="0"+_phoneNumber.value,
                 email = _email.value,
-                profilePicture = null,
+                profilePicture = "",
                 stars = 4.00,
+                    sid = null,
+                    sync = null,
+                    requests = null
 
             ))
         } catch (e: Exception) {
@@ -134,7 +141,9 @@ class UserLoginViewModel @Inject constructor(
 
     suspend fun checkIfUserExists(phoneNumber: String) : Boolean{
         try {
-            return checkIfUserProfileExistUseCase.execute("0"+phoneNumber)
+            checkIfUserProfileExistUseCase.execute("\"0"+phoneNumber+"\"")
+                .onSuccess { return it }
+                .onFailure { Failure(BasicError(Throwable("Error"))) }
 
         }catch (e: Exception) {
             _errorMessage.value = "Error ${e.message}"

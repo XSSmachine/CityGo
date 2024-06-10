@@ -6,10 +6,9 @@ import com.example.domain.interfaces.offer_usecases.UpdateOfferStatusUseCase
 class UpdateOfferStatusUseCaseImpl constructor(private val offerRepository: OfferRepository
 ):UpdateOfferStatusUseCase {
     override suspend fun execute(
-        userRequestId: Int,
-        serviceProviderId: String,
+        sid: String,
         status: String
     ) {
-        offerRepository.updateOfferStatus( userRequestId, serviceProviderId, status)
+        offerRepository.updateOfferStatus( sid, status)
     }
 }

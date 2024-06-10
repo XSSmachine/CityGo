@@ -7,23 +7,42 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.domain.interfaces.offer_usecases.CheckCreatedOffersUseCase
 import com.example.domain.interfaces.offer_usecases.CreateOfferUseCase
 import com.example.domain.interfaces.offer_usecases.HasOfferUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserProfileUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserRoleUseCase
 import com.example.domain.interfaces.userrequest_usecases.DeleteUserRequestUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetRemoteUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.UpdateUserRequestUseCase
+import com.example.userrequest.R
 import com.hfad.model.Address
+import com.hfad.model.BasicError
+import com.hfad.model.Error
+import com.hfad.model.Failure
+import com.hfad.model.Loading
 import com.hfad.model.OfferRequestModel
+import com.hfad.model.Success
+import com.hfad.model.Triumph
+import com.hfad.model.UserProfileResponseModel
 import com.hfad.model.UserRequestResponseModel
+import com.hfad.model.ViewState
+import com.hfad.model.onFailure
+import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 
 @HiltViewModel
 class DetailUserRequestViewModel @Inject constructor(
@@ -34,85 +53,105 @@ class DetailUserRequestViewModel @Inject constructor(
     private val deleteUserRequestUseCase: DeleteUserRequestUseCase,
     private val createOfferUseCase: CreateOfferUseCase,
     private val getUserRoleUseCase: GetUserRoleUseCase,
-    private val hasOfferUseCase: HasOfferUseCase
+    private val hasOfferUseCase: HasOfferUseCase,
+    private val getRemoteUserRequestUseCase: GetRemoteUserRequestUseCase,
+    private val checkCreatedOffersUseCase: CheckCreatedOffersUseCase
 ): ViewModel(){
 
-    var state by mutableStateOf(UserRequestData())
+    private val coroutineContext= CoroutineScope(Dispatchers.IO).coroutineContext
+
+    protected val _requestViewState = MutableLiveData<ViewState<UserRequestResponseModel>>()
+    val requestViewState: LiveData<ViewState<UserRequestResponseModel>>
+        get() = _requestViewState
+
+
+    protected val _profileViewState = MutableLiveData<ViewState<UserProfileResponseModel>>()
+    val profileViewState: LiveData<ViewState<UserProfileResponseModel>>
+        get() = _profileViewState
+
+
     var data by mutableStateOf(ProfileState())
     var userId by mutableStateOf("")
 
-    private val _price = mutableStateOf(state.price.toString())
-    private val _timeTable = mutableStateOf(state.timeTable)
 
-
-    val price: String
-        get() = _price.value
-
-    fun setPrice(value: String) {
-        _price.value = value
-    }
-
-    val timeTable: String
-        get() = _timeTable.value
-
-    fun setTimeTable(value: String) {
-        _timeTable.value = value
-    }
 
 
     init {
         viewModelScope.launch {
 
+            _requestViewState.postValue(Loading("Loading", "Loading", "Loading", R.drawable.baseline_rocket_launch_24, R.drawable.img))
+            _profileViewState.postValue(Loading("Loading", "Loading", "Loading", R.drawable.baseline_rocket_launch_24, R.drawable.img))
         }
 
     }
 
-    fun doesOfferExist(userRequestId: Int): Boolean {
-        var count = 0
-        runBlocking {
-            count = hasOfferUseCase.execute(userRequestId, getIdValue())
+    suspend fun doesOfferExist(sid: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = checkCreatedOffersUseCase.execute(sid, getIdValue())
+                when (response) {
+                    is Success -> true
+                    else -> false
+                }
+            } catch (e: Exception) {
+                Log.d("doesOfferExist", "Error checking offer existence: $e")
+                false
+            }
         }
-        Log.d("COUNTERR", count.toString())
-        return count>0
-
     }
 
-    suspend fun getUserRequest(requestId:Int,userId:String,){
-        val request= getUserRequestUseCase.execute(userId,requestId)
-        if (request!=null)
-            state = state.copy(
-                photo = request.photo,
-                description = request.description,
-                address1 = request.address1,
-                address2 = request.address2,
-                timeTable = request.timeTable,
-                category = request.category,
-                extraWorker = request.extraWorker,
-                price = request.price
 
-            )
+
+    suspend fun getUserRequest(userRequestUUID: String,userId:String,){
+        viewModelScope.launch(coroutineContext) {
+            getUserRequestUseCase.execute(userId, userRequestUUID)
+                .onSuccess { _requestViewState.postValue(Triumph(it)) }
+                .onFailure { _requestViewState.postValue(Error(it, "user request details")) }
+        }
+//        if (request!=null)
+//            state = state.copy(
+//                photo = request.photo,
+//                description = request.description,
+//                address1 = request.address1,
+//                address2 = request.address2,
+//                timeTable = request.timeTable,
+//                category = request.category,
+//                extraWorker = request.extraWorker,
+//                price = request.price
+//
+//            )
+    }
+
+    suspend fun getRemoteUserRequest(sid:String){
+        viewModelScope.launch(coroutineContext) {
+            getRemoteUserRequestUseCase.execute(sid)
+                .onSuccess { _requestViewState.postValue(Triumph(it)) }
+                .onFailure { _requestViewState.postValue(Error(it, "user request details")) }
+        }
     }
 
      fun getProfileDetails(userId: String){
-        viewModelScope.launch{
-            val user = getUserProfileUseCase.execute(userId)
-            if (user != null) {
-                Log.d("PROFIL",user.name)
-            }
-            if (user!=null)
-                data = data.copy(
-                    name=user.name,
-                    stars = user.stars,
-                    photo = user.profilePicture.toString()
-
-
-                )
+        viewModelScope.launch(coroutineContext){
+            getUserProfileUseCase.execute(userId)
+                .onSuccess { _profileViewState.postValue(Triumph(it)) }
+                .onFailure { _profileViewState.postValue(Error(it)) }
+//            if (user != null) {
+//                Log.d("PROFIL",user.name)
+//            }
+//            if (user!=null)
+//                data = data.copy(
+//                    name=user.name,
+//                    stars = user.stars,
+//                    photo = user.profilePicture.toString()
+//
+//
+//                )
         }
 
     }
 
-    fun deleteUserRequest(requestId: Int,userId: String)= viewModelScope.launch{
-        deleteUserRequestUseCase.execute(userId,requestId)
+    fun deleteUserRequest(userRequestUUID: String,userId: String)= viewModelScope.launch{
+        deleteUserRequestUseCase.execute(userId,userRequestUUID)
     }
 
 
@@ -142,15 +181,17 @@ class DetailUserRequestViewModel @Inject constructor(
         return r
     }
 
-    fun createOffer(requestId:Long,price:Int,timeTable:String ){
+    fun createOffer(userRequestUUID: String,price:Int,timeTable:String ){
         viewModelScope.launch { createOfferUseCase.execute(
             OfferRequestModel(
                 id = null,
-                userRequestId = requestId.toInt(),
+                userRequestUUID = userRequestUUID,
                 serviceProviderId =getIdValue(),
                 price,
                 timeTable,
-                status = "Pending"
+                status = "Pending",
+                sid = null,
+                sync = null
             )
         ) }
 

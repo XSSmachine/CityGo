@@ -9,16 +9,18 @@ import com.example.domain.interfaces.OfferRepository
 import com.example.domain.interfaces.ServiceProviderProfileRepository
 import com.example.domain.interfaces.UserProfileRepository
 import com.example.domain.interfaces.UserRequestRepository
+import com.example.domain.interfaces.offer_usecases.CheckCreatedOffersUseCase
 import com.example.domain.interfaces.offer_usecases.CreateOfferUseCase
+import com.example.domain.interfaces.offer_usecases.DeleteOfferUseCase
 import com.example.domain.interfaces.offer_usecases.GetAllMyOffersUseCase
 import com.example.domain.interfaces.offer_usecases.GetAllOffersUseCase
+import com.example.domain.interfaces.offer_usecases.GetOfferByUserRequestUseCase
 import com.example.domain.interfaces.offer_usecases.GetOfferUseCase
 import com.example.domain.interfaces.offer_usecases.HasOfferUseCase
 import com.example.domain.interfaces.offer_usecases.UpdateOfferStatusUseCase
 import com.example.domain.interfaces.serviceproviderprofile_usecases.CreateServiceProviderProfileUseCase
 import com.example.domain.interfaces.serviceproviderprofile_usecases.DeleteServiceProviderProfileUseCase
 import com.example.domain.interfaces.serviceproviderprofile_usecases.GetServiceProviderProfileUseCase
-import com.example.domain.interfaces.serviceproviderprofile_usecases.UpdateServiceProviderProfileUseCase
 import com.example.domain.interfaces.serviceproviderprofile_usecases.UpdateServiceProviderStatusUseCase
 import com.example.domain.interfaces.userprofile_usecases.CheckIfUserProfileExistUseCase
 import com.example.domain.interfaces.userprofile_usecases.ClearUserIdUseCase
@@ -34,6 +36,7 @@ import com.example.domain.interfaces.userrequest_usecases.CreateUserRequestUseCa
 import com.example.domain.interfaces.userrequest_usecases.DeleteUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetAllCurrentUserRequestsUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetAllUserRequestsUseCase
+import com.example.domain.interfaces.userrequest_usecases.GetRemoteUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetUserRequestByIdUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.UpdateUserRequestUseCase
@@ -42,16 +45,18 @@ import com.example.domain.repositories.OfferRepositoryImpl
 import com.example.domain.repositories.ServiceProviderProfileRepositoryImpl
 import com.example.domain.repositories.UserProfileRepositoryImpl
 import com.example.domain.repositories.UserRequestRepositoryImpl
+import com.example.domain.usecases.offer.CheckCreatedOffersUseCaseImpl
 import com.example.domain.usecases.offer.CreateOfferUseCaseImpl
+import com.example.domain.usecases.offer.DeleteOfferUseCaseImpl
 import com.example.domain.usecases.offer.GetAllMyOffersUseCaseImpl
 import com.example.domain.usecases.offer.GetAllOffersUseCaseImpl
+import com.example.domain.usecases.offer.GetOfferByUserRequestUseCaseImpl
 import com.example.domain.usecases.offer.GetOfferUseCaseImpl
 import com.example.domain.usecases.offer.HasOfferUseCaseImpl
 import com.example.domain.usecases.offer.UpdateOfferStatusUseCaseImpl
 import com.example.domain.usecases.serviceproviderprofile.CreateServiceProviderProfileUseCaseImpl
 import com.example.domain.usecases.serviceproviderprofile.DeleteServiceProviderProfileUseCaseImpl
 import com.example.domain.usecases.serviceproviderprofile.GetServiceProviderProfileUseCaseImpl
-import com.example.domain.usecases.serviceproviderprofile.UpdateServiceProviderProfileUseCaseImpl
 import com.example.domain.usecases.serviceproviderprofile.UpdateServiceProviderStatusUseCaseImpl
 import com.example.domain.usecases.userprofile.CheckIfUserProfileExistUseCaseImpl
 import com.example.domain.usecases.userprofile.ClearUserIdUseCaseImpl
@@ -67,9 +72,20 @@ import com.example.domain.usecases.userrequest.CreateUserRequestUseCaseImpl
 import com.example.domain.usecases.userrequest.DeleteUserRequestUseCaseImpl
 import com.example.domain.usecases.userrequest.GetAllCurrentUserRequestsUseCaseImpl
 import com.example.domain.usecases.userrequest.GetAllUserRequestsUseCaseImpl
+import com.example.domain.usecases.userrequest.GetRemoteUserRequestUseCaseImpl
 import com.example.domain.usecases.userrequest.GetUserRequestByIdUseCaseImpl
 import com.example.domain.usecases.userrequest.GetUserRequestUseCaseImpl
 import com.example.domain.usecases.userrequest.UpdateUserRequestUseCaseImpl
+import com.example.network.RemoteImageDataSource
+import com.example.network.RemoteOfferDataSource
+import com.example.network.RemoteProviderDataSource
+import com.example.network.RemoteUserDataSource
+import com.example.network.RemoteUserRequestDataSource
+import com.example.network.interfaces.ImageUploader
+import com.example.network.interfaces.dao.RemoteOfferDao
+import com.example.network.interfaces.dao.RemoteProviderDao
+import com.example.network.interfaces.dao.RemoteUserDao
+import com.example.network.interfaces.dao.RemoteUserRequestDao
 import com.example.repository.datasources.room.RoomOfferDataSource
 import com.example.repository.datasources.room.RoomServiceProviderDataSource
 import com.example.repository.datasources.room.RoomUserDataSource
@@ -85,6 +101,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 
@@ -123,11 +141,69 @@ object AppModule {
     }
 
     @Provides
+    fun providesRetrofitUserDao(retrofit: Retrofit): RemoteUserDao {
+        return retrofit.create(RemoteUserDao::class.java)
+    }
+
+    @Provides
+    fun provideRemoteUserDataSource(dao: RemoteUserDao): RemoteUserDataSource {
+        return RemoteUserDataSource(dao)
+    }
+
+    @Provides
+    fun provideRemoteImageDataSource() : RemoteImageDataSource {
+        return RemoteImageDataSource()
+    }
+
+    @Provides
+    fun provideRemoteOfferDataSource(dao:RemoteOfferDao) : RemoteOfferDataSource {
+        return RemoteOfferDataSource(dao)
+    }
+    @Provides
+    fun provideRemoteUserRequestDataSource(dao: RemoteUserRequestDao): RemoteUserRequestDataSource {
+        return RemoteUserRequestDataSource(dao)
+    }
+    @Provides
+    fun provideRemoteProviderDataSource(dao: RemoteProviderDao): RemoteProviderDataSource {
+        return RemoteProviderDataSource(dao)
+    }
+
+
+    @Provides
+    fun providesRetrofitUserRequestDao(retrofit: Retrofit): RemoteUserRequestDao {
+        return retrofit.create(RemoteUserRequestDao::class.java)
+    }
+
+    @Provides
+    fun providesRetrofitOfferDao(retrofit: Retrofit): RemoteOfferDao {
+        return retrofit.create(RemoteOfferDao::class.java)
+    }
+
+    @Provides
+    fun providesRetrofitProviderDao(retrofit: Retrofit): RemoteProviderDao {
+        return retrofit.create(RemoteProviderDao::class.java)
+    }
+
+    @Singleton
+    @Provides
+    fun providesRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .addConverterFactory(
+                GsonConverterFactory.create()
+            )
+            .baseUrl("https://citygo-35101-default-rtdb.europe-west1.firebasedatabase.app/")
+            .build()
+    }
+
+    @Provides
     @Singleton
     fun providesContactRepository(
-        dataSource: UserRequestDataSource
+        dataSource: UserRequestDataSource,
+        remoteUserRequestDataSource: RemoteUserRequestDataSource,
+        remoteUserDataSource: RemoteUserDataSource,
+        remoteImageDataSource: RemoteImageDataSource
     ): UserRequestRepository {
-        return UserRequestRepositoryImpl(dataSource)
+        return UserRequestRepositoryImpl(dataSource,remoteUserRequestDataSource,remoteUserDataSource,remoteImageDataSource)
     }
 
     @Provides
@@ -171,6 +247,15 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun providesGetRemoteUserRequestUseCase(
+        repository: UserRequestRepository
+    ): GetRemoteUserRequestUseCase {
+        return GetRemoteUserRequestUseCaseImpl(repository)
+    }
+
+
+    @Provides
+    @Singleton
     fun providesGetUserByIdRequestUseCase(
         repository: UserRequestRepository
     ): GetUserRequestByIdUseCase {
@@ -207,9 +292,11 @@ object AppModule {
     @Provides
     @Singleton
     fun providesUserProfileRepository(
-        dataSource: UsersDataSource
+        dataSource: UsersDataSource,
+        remoteUserDataSource: RemoteUserDataSource,
+        imageDataSource: RemoteImageDataSource
     ): UserProfileRepository {
-        return UserProfileRepositoryImpl(dataSource)
+        return UserProfileRepositoryImpl(dataSource,remoteUserDataSource,imageDataSource)
     }
 
     @Provides
@@ -335,9 +422,11 @@ object AppModule {
     @Provides
     @Singleton
     fun providesServiceProviderProfileRepository(
-        dataSource: ServiceProvidersDataSource
+        dataSource: ServiceProvidersDataSource,
+        remoteProviderDataSource: RemoteProviderDataSource,
+        remoteImageDataSource: RemoteImageDataSource
     ): ServiceProviderProfileRepository {
-        return ServiceProviderProfileRepositoryImpl(dataSource)
+        return ServiceProviderProfileRepositoryImpl(dataSource,remoteProviderDataSource,remoteImageDataSource)
     }
     @Provides
     @Singleton
@@ -391,9 +480,14 @@ object AppModule {
     @Provides
     @Singleton
     fun providesOfferRepository(
-        dataSource: OfferDataSource
+        dataSource: OfferDataSource,
+        remoteOfferDataSource: RemoteOfferDataSource,
+        remoteProviderDataSource: RemoteProviderDataSource,
+        remoteUserRequestDataSource: RemoteUserRequestDataSource
     ): OfferRepository {
-        return OfferRepositoryImpl(dataSource)
+        return OfferRepositoryImpl(dataSource,
+            remoteProviderDataSource,remoteUserRequestDataSource,remoteOfferDataSource
+            )
     }
     @Provides
     @Singleton
@@ -405,10 +499,34 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun providesCheckCreatedOffersUseCase(
+        repository: OfferRepository
+    ): CheckCreatedOffersUseCase {
+        return CheckCreatedOffersUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
     fun providesGetOfferUseCase(
         repository: OfferRepository
     ): GetOfferUseCase {
         return GetOfferUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetOfferByUserRequestUseCase(
+        repository: OfferRepository
+    ): GetOfferByUserRequestUseCase {
+        return GetOfferByUserRequestUseCaseImpl(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesDeleteOfferUseCase(
+        repository: OfferRepository
+    ): DeleteOfferUseCase {
+        return DeleteOfferUseCaseImpl(repository)
     }
 
     @Provides

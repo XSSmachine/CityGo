@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,8 @@ import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
 import com.example.domain.interfaces.userrequest_usecases.CreateUserRequestUseCase
 import com.hfad.model.Address
 import com.hfad.model.UserRequestRequestModel
+import com.hfad.model.onFailure
+import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -41,6 +44,10 @@ class CreateUserRequestViewModel @Inject constructor(
 
 
     private val _errorMessage = mutableStateOf("")
+
+    val _capturedImageUri  =
+        mutableStateOf<Uri>(Uri.parse("android.resource://CityGo/presentation/ui-userrequests/src/main/res/drawable/baseline_image_24"))
+
 
     private val _address1 = mutableStateOf(Address("",0.0,0.0,true,0,"",""))
     private val _address2 = mutableStateOf(Address("",0.0,0.0,true,0,"",""))
@@ -87,6 +94,13 @@ class CreateUserRequestViewModel @Inject constructor(
     // Function to decrement the click counter
     fun decrementClickCounter() {
         clickCounter--
+    }
+
+    val capturedImageUri:Uri
+        get() = _capturedImageUri.value
+
+    fun setCapturedImageUri(value: Uri) {
+        _capturedImageUri.value = value
     }
 
     val category:String
@@ -422,8 +436,9 @@ class CreateUserRequestViewModel @Inject constructor(
 //                    id=null, userId = "test1", photo="gallery/img1",address1=_address1.value, address2=_address2.value,description = "opis", timeTable = _timeTable.value, category = "L", extraWorker = _extraWorker.value, price = _price.value
 //                ))
                 UserRequestRequestModel(
-                    id=null, userId = getIdValue(), photo=_capturedImageUris.value,address1=_address1.value, address2=_address2.value,description = _description.value, timeTable = _timeTable.value, date = dateInString, category = _category.value, extraWorker = _extraWorker.value==1, price = _price.value
-                ))
+                    uuid=null, userId = getIdValue(), photo=_capturedImageUris.value,address1=_address1.value, address2=_address2.value,description = _description.value, timeTable = _timeTable.value, date = dateInString, category = _category.value, extraWorker = _extraWorker.value==1, price = _price.value, sid = null, sync = null, offers = null
+                )).onSuccess {  }
+                .onFailure {  }
             resetValues()
         } catch (e: Exception) {
             _errorMessage.value = "Error ${e.message}"

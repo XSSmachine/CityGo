@@ -32,6 +32,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.ui_users.R
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 
@@ -54,6 +56,7 @@ import kotlinx.coroutines.runBlocking
 @Composable
 fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -290,7 +293,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        runBlocking { userViewModel.createServiceProviderProfile() }
+                         scope.launch{ userViewModel.createServiceProviderProfile() }
                         onButtonClicked()
                     },
                     modifier = Modifier

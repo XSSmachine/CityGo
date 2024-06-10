@@ -1,26 +1,32 @@
 package com.hfad.model
 
 import android.net.Uri
+import com.google.gson.annotations.SerializedName
+import java.io.Serial
 
 
 //dohvat iz baze
 data class UserRequestResponseModel(
-    val id: Int,
+    val uuid: String?,
     val userId: String,
     val photo: Uri,
     val description: String,
-    val address1: Address,
+    var address1: Address,
     val address2: Address,
     val timeTable: String,
     val date: String,
     val category: String,
     val extraWorker: Boolean,
-    val price: Int
+    val price: Int,
+
+    val sid: String?,
+    val sync:Long?,
+    val offers: List<String>?
 )
 
 //spremanje u bazu
 data class UserRequestRequestModel(
-    val id: Int? = null,
+    val uuid: String?,
     val userId: String,
     val photo: String,
     val description: String,
@@ -30,7 +36,11 @@ data class UserRequestRequestModel(
     val date: String,
     val category: String,
     val extraWorker: Boolean,
-    val price: Int
+    val price: Int,
+
+    val sid: String?,
+    val sync:Long?,
+    val offers: List<String>?
 )
 
 data class Address(
@@ -52,7 +62,10 @@ data class UserProfileResponseModel(
     val email: String?,
     val phoneNumber: String,
     val profilePicture: String?,
-    val stars: Double
+    val stars: Double,
+    val sid: String?,
+    val sync:Long?,
+    val requests: List<String>?
 )
 
 data class UserProfileRequestModel(
@@ -62,8 +75,12 @@ data class UserProfileRequestModel(
     val email: String?,
     val phoneNumber: String,
     val profilePicture: String?,
-    val stars: Double
+    val stars: Double,
+    val sid: String?,
+    val sync:Long?,
+    val requests: List<String>?
 )
+
 
 //-------------------------------------------------------------
 data class ServiceProviderProfileResponseModel(
@@ -85,7 +102,11 @@ data class ServiceProviderProfileResponseModel(
     val idPictureBack:String,
     val vehiclePicture:String,
     val stars: Double,
-    val status:String
+    val status:String,
+
+    val sid: String?,
+    val sync:Long?,
+    val offers: List<String>?
 )
 
 data class ServiceProviderProfileRequestModel(
@@ -107,7 +128,12 @@ data class ServiceProviderProfileRequestModel(
     val idPictureBack:String,
     val vehiclePicture:String,
     val stars: Double,
-    val status:String
+    val status:String,
+
+    val sid: String?,
+    val sync:Long?,
+    val offers: List<String>?
+
 )
 
 
@@ -115,19 +141,33 @@ data class ServiceProviderProfileRequestModel(
 
 data class OfferResponseModel(
     val id: Int,
-    val userRequestId: Int,
+    val userRequestUUID: String,
     val serviceProviderId: String,
     val price: Int?,
     val timeTable: String?,
-    val status: String
+    val status: String,
+
+    val sid: String?,
+    val sync:Long?
 )
 
 
 data class OfferRequestModel(
     val id: Int?=null,
-    val userRequestId: Int,
+    val userRequestUUID: String,
     val serviceProviderId: String,
     val price: Int?,
     val timeTable: String?,
-    val status: String
+    val status: String,
+
+    val sid: String?,
+    val sync:Long?
+)
+
+
+//-----------------------------------------------------------------------
+
+data class ResponseBody(
+    @SerializedName("name")
+    val sid: String
 )

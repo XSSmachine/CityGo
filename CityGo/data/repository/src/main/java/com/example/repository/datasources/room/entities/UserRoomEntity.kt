@@ -20,7 +20,10 @@ data class UserProfileRoomEntity(
     val email: String?,
     val phoneNumber: String,
     val profilePicture: String?,
-    val stars: Double
+    val stars: Double,
+
+    val sid: String? ,
+    val sync:Long?
 )
 
 /**
@@ -39,6 +42,9 @@ fun UserProfileRoomEntity.toUserProfileResponseModel(): UserProfileResponseModel
         phoneNumber=phoneNumber,
         profilePicture=profilePicture,
         stars=stars,
+        sid=sid,
+        sync=sync,
+        requests = null
     )
 }
 
@@ -52,5 +58,23 @@ fun UserProfileRequestModel.toUserProfileRoomEntity(): UserProfileRoomEntity{
         phoneNumber=phoneNumber,
         profilePicture=profilePicture,
         stars=stars,
+        sid=sid,
+        sync=sync,
     )
 }
+
+fun UserProfileResponseModel.toUserProfileRequestModel(): UserProfileRequestModel{
+    return UserProfileRequestModel(
+        id = id,
+        name=name,
+        surname= surname,
+        email=email,
+        phoneNumber=phoneNumber,
+        profilePicture=profilePicture!!,
+        stars=stars,
+        sid=sid,
+        sync=sync,
+        requests=requests
+    )
+}
+

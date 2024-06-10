@@ -2,6 +2,7 @@ package com.example.userrequest.update
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -24,93 +25,166 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.sharp.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import com.example.userrequest.R
-import com.example.userrequest.create.ChipVerticalGrid
-import com.example.userrequest.create.CreateUserRequestViewModel
 import com.example.userrequest.create.createImageFile
-import kotlinx.coroutines.runBlocking
+import com.hfad.model.Address
+import com.hfad.model.Loading
+import com.hfad.model.Triumph
+import com.hfad.model.UserRequestResponseModel
+import kotlinx.coroutines.launch
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+private lateinit var context: Context
+private lateinit var activity: Activity
+private var navController: NavHostController? = null
+private lateinit var viewModel: UpdateUserRequestViewModel
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateUserRequestScreen(
-    viewModel: UpdateUserRequestViewModel,
-    requestId: Int,
+    ViewModel: UpdateUserRequestViewModel,
+    requestId: String,
     userId:String,
-    navigateUp: () -> Unit
+    navigateUp: () -> Unit,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
 
+    context = LocalContext.current
+    val focusRequester = remember { FocusRequester() }
 
-    // Fetch user request details when the screen is first displayed
+
+    val scope = rememberCoroutineScope()
+//    val scaffoldState = rememberScaffoldState()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+    // Get screen width and height for padding calculation
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
+
+    viewModel = ViewModel
+
+    activity = ((LocalContext.current as? Activity)!!)
+
+
+    val state = remember { mutableStateOf(
+        UserRequestResponseModel(
+        uuid ="",
+        date = "",
+        userId = "",
+        photo = "".toUri(),
+        description="",
+        address1 = Address("",null,null,true,0,"",""),
+        address2= Address("",null,null,true,0,"",""),
+        timeTable="",
+        category="",
+        extraWorker=false,
+        price=0,
+                sid = null,
+            sync = null,
+            offers = null
+        )
+    ) }
+
+
+
     LaunchedEffect(Unit) {
-        viewModel.getUserRequest(requestId,userId)
-    }
+        // Run on first screen compose
+        viewModel.getUserRequest(requestId, userId)
 
-    // Update user request details when the save button is clicked
-    val saveButtonEnabled = viewModel.state.description.isNotBlank() && viewModel.state.timeTable.isNotBlank()
-    val saveButtonAction = {
-        runBlocking {
-            viewModel.updateUserRequest(requestId,userId)
-            navigateUp()
+        viewModel.viewState.observe(lifecycleOwner) { value ->
+            when (value) {
+                is Loading -> {
+                    //Loading case
+                }
+
+                is Triumph -> {
+                    when (value.data) {
+                        is UserRequestResponseModel -> {
+                            state.value = value.data
+                        }
+
+                    }
+                }
+
+                is Error -> {
+
+                }
+
+                else -> {}
+            }
         }
     }
+
+        // Fetch user request details when the screen is first displayed
+        LaunchedEffect(Unit) {
+            viewModel.getUserRequest(requestId, userId)
+        }
+
+        // Update user request details when the save button is clicked
+        val saveButtonEnabled =
+            state.value.description.isNotBlank() && state.value.timeTable.isNotBlank()
+    val saveButtonAction: suspend () -> Unit = {
+        viewModel.updateUserRequest(requestId, userId,state.value)
+        navigateUp()
+    }
+
+
 
     Scaffold(
         topBar = {
@@ -122,12 +196,14 @@ fun UpdateUserRequestScreen(
                     }
                 },
                 actions = {
-                    TextButton(
-                        onClick = saveButtonAction,
-                        enabled = saveButtonEnabled
-                    ) {
-                        Text(text = "Save")
+                    Button(onClick = {
+                        viewModel.viewModelScope.launch {
+                            saveButtonAction()
+                        }
+                    }) {
+                        Text("Save")
                     }
+
                 }
             )
         },
@@ -138,10 +214,10 @@ fun UpdateUserRequestScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 // Image
-                ImageInput(viewModel.state.photo.toString()) {uri ->
+                ImageInput(state.value.photo.toString()) {uri ->
                 // Handle the received URI here, for example, update selfiePicture state
                     if (uri != null) {
-                        viewModel.setUserRequestPicture(uri)
+                        state.value = state.value.copy(photo = uri)
                     }
             }
 
@@ -149,8 +225,8 @@ fun UpdateUserRequestScreen(
 
                 // Description TextField
                 TextField(
-                    value = viewModel.state.description,
-                    onValueChange = { newValue -> viewModel.onDescriptionChange(newValue) },
+                    value = state.value.description,
+                    onValueChange = { newValue -> state.value = state.value.copy(description = newValue) },
                     label = { Text(text = "Description") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -164,7 +240,7 @@ fun UpdateUserRequestScreen(
                         defaultElevation = 8.dp
                     )
                 ) {
-                    Text(text = viewModel.state.category)
+                    Text(text = state.value.category)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -177,9 +253,9 @@ fun UpdateUserRequestScreen(
                     )
                 ) {
                     ExtraWorkerSwitch(
-                        isChecked = viewModel.state.extraWorker,
+                        isChecked = state.value.extraWorker,
                         onCheckedChange = { isChecked ->
-                            viewModel.setExtraWorker(isChecked)
+                            state.value = state.value.copy(extraWorker = isChecked)
                         }
                     )
                 }
@@ -187,12 +263,16 @@ fun UpdateUserRequestScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Address 1 TextFields
-                addressDetails1(createUserRequestViewModel = viewModel)
+                addressDetailss1(state.value){
+                    state.value=it
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Address 2 TextFields
-               addressDetails2(createUserRequestViewModel = viewModel)
+               addressDetailss2(state.value){
+                   state.value=it
+               }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -202,8 +282,8 @@ fun UpdateUserRequestScreen(
 
                 // Price TextField
                 TextField(
-                    value = viewModel.state.price.toString(),
-                    onValueChange = {viewModel.onPriceChange(it.toIntOrNull()?: 0) },
+                    value = state.value.price.toString(),
+                    onValueChange = {state.value = state.value.copy(price = it.toInt()) },
                     label = { Text(text = "Price") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -230,27 +310,25 @@ fun ExtraWorkerSwitch(
 
 
 @Composable
-fun addressDetails1(createUserRequestViewModel: UpdateUserRequestViewModel){
-    Column(horizontalAlignment = Alignment.CenterHorizontally,
+fun addressDetailss1(state: UserRequestResponseModel, onStateChange: (UserRequestResponseModel) -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)) {
-
+            .padding(16.dp)
+    ) {
         Spacer(modifier = Modifier.width(16.dp))
         Text("Početna adresa")
-
         Spacer(modifier = Modifier.width(16.dp))
-
         OutlinedTextField(
-            value = createUserRequestViewModel.state.address1.addressName,
+            value = state.address1.addressName,
             onValueChange = { value ->
-                createUserRequestViewModel.setAddressName1(value) },
+                onStateChange(state.copy(address1 = state.address1.copy(addressName = value)))
+            },
             label = { Text("Traži adresu") }
         )
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Row{
+        Row {
             val pattern = remember { Regex("^\\d*\$") }
             OutlinedTextField(
                 modifier = Modifier
@@ -259,27 +337,20 @@ fun addressDetails1(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address1.floor.toString(),
-                onValueChange = { value:String ->
-
+                value = state.address1.floor.toString(),
+                onValueChange = { value: String ->
                     if (value.matches(pattern)) {
-                        createUserRequestViewModel.setFloors1(value.toIntOrNull()?: 0)
+                        onStateChange(state.copy(address1 = state.address1.copy(floor = if (value.isNotEmpty()) value.toInt() else 0)))
                     }
                 },
-//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 1,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-
         }
-
         Text("Uslikaj i odradi transport već danas!")
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Row{
-
+        Row {
             OutlinedTextField(
                 modifier = Modifier
                     .width(90.dp)
@@ -287,15 +358,14 @@ fun addressDetails1(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address1.doorCode.toString(),
+                value = state.address1.doorCode.toString(),
                 onValueChange = { value ->
-                    createUserRequestViewModel.setDoorCode1(value)
+                    onStateChange(state.copy(address1 = state.address1.copy(doorCode = value)))
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 1,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
             )
-
             OutlinedTextField(
                 modifier = Modifier
                     .width(90.dp)
@@ -303,43 +373,40 @@ fun addressDetails1(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address1.phoneNumber,
+                value = state.address1.phoneNumber,
                 onValueChange = { value ->
-                    createUserRequestViewModel.setPhoneNumber1(value)
+                    onStateChange(state.copy(address1 = state.address1.copy(phoneNumber = value)))
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 4,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
             )
-
-
         }
     }
 }
 
 
+
 @Composable
-fun addressDetails2(createUserRequestViewModel: UpdateUserRequestViewModel){
-    Column(horizontalAlignment = Alignment.CenterHorizontally,
+fun addressDetailss2(state: UserRequestResponseModel, onStateChange: (UserRequestResponseModel) -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)) {
-
+            .padding(16.dp)
+    ) {
         Spacer(modifier = Modifier.width(16.dp))
         Text("Početna adresa")
-
         Spacer(modifier = Modifier.width(16.dp))
-
         OutlinedTextField(
-            value = createUserRequestViewModel.state.address2.addressName,
+            value = state.address2.addressName,
             onValueChange = { value ->
-                createUserRequestViewModel.setAddressName2(value) },
+                onStateChange(state.copy(address2 = state.address2.copy(addressName = value)))
+            },
             label = { Text("Traži adresu") }
         )
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Row{
+        Row {
             val pattern = remember { Regex("^\\d*\$") }
             OutlinedTextField(
                 modifier = Modifier
@@ -348,27 +415,20 @@ fun addressDetails2(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address2.floor.toString(),
-                onValueChange = { value:String ->
-
+                value = state.address2.floor.toString(),
+                onValueChange = { value: String ->
                     if (value.matches(pattern)) {
-                        createUserRequestViewModel.setFloors2(value.toIntOrNull()?: 0)
+                        onStateChange(state.copy(address2 = state.address2.copy(floor = if (value.isNotEmpty()) value.toInt() else 0)))
                     }
                 },
-//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 1,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-
         }
-
         Text("Uslikaj i odradi transport već danas!")
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Row{
-
+        Row {
             OutlinedTextField(
                 modifier = Modifier
                     .width(90.dp)
@@ -376,15 +436,14 @@ fun addressDetails2(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address2.doorCode.toString(),
+                value = state.address2.doorCode.toString(),
                 onValueChange = { value ->
-                    createUserRequestViewModel.setDoorCode2(value)
+                    onStateChange(state.copy(address2 = state.address2.copy(doorCode = value)))
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 1,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
             )
-
             OutlinedTextField(
                 modifier = Modifier
                     .width(90.dp)
@@ -392,16 +451,14 @@ fun addressDetails2(createUserRequestViewModel: UpdateUserRequestViewModel){
                     .padding(start = 15.dp, top = 10.dp, end = 15.dp)
                     .background(Color.White, RoundedCornerShape(5.dp)),
                 shape = RoundedCornerShape(5.dp),
-                value = createUserRequestViewModel.state.address2.phoneNumber,
+                value = state.address2.phoneNumber,
                 onValueChange = { value ->
-                    createUserRequestViewModel.setPhoneNumber2(value)
+                    onStateChange(state.copy(address2 = state.address2.copy(phoneNumber = value)))
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 maxLines = 4,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
             )
-
-
         }
     }
 }
@@ -464,7 +521,7 @@ fun ImageInput(text: String, onImageUriReceived: (Uri?) -> Unit) {
         var isSheetOpen by rememberSaveable {
             mutableStateOf(false)
         }
-        var imageUri by remember {
+        var imageUri by rememberSaveable {
             mutableStateOf<Uri?>(null)
         }
         if (imageUri != null) {

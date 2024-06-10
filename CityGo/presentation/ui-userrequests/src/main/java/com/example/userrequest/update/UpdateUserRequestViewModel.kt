@@ -6,18 +6,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.UpdateUserRequestUseCase
 import com.example.userrequest.create.getCurrentDateTime
 import com.example.userrequest.create.toString
+import com.example.userrequest.read.ServiceProviderProfileState
 import com.hfad.model.Address
+import com.hfad.model.Error
+import com.hfad.model.ServiceProviderProfileResponseModel
+import com.hfad.model.Triumph
 import com.hfad.model.UserRequestRequestModel
 import com.hfad.model.UserRequestResponseModel
+import com.hfad.model.ViewState
+import com.hfad.model.onFailure
+import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
+import kotlin.coroutines.coroutineContext
 
 @HiltViewModel
 class UpdateUserRequestViewModel @Inject constructor(
@@ -27,6 +39,10 @@ class UpdateUserRequestViewModel @Inject constructor(
 ) : ViewModel() {
 
     var state by mutableStateOf(UserRequestData())
+
+    protected val _viewState = MutableLiveData<ViewState<UserRequestResponseModel>>()
+    val viewState: LiveData<ViewState<UserRequestResponseModel>>
+        get() = _viewState
 
     fun setExtraWorker(isExtraWorker: Boolean) {
         state = state.copy(extraWorker = isExtraWorker)
@@ -87,41 +103,35 @@ class UpdateUserRequestViewModel @Inject constructor(
 
 
     // Function to fetch user request details
-    suspend fun getUserRequest(requestId:Int,userId:String){
-        val request= getUserRequestUseCase.execute(userId,requestId)
-        Log.d("STATE",request!!.description)
-        if (request!=null)
-            state = state.copy(
-                photo = request.photo,
-                description = request.description,
-                address1 = request.address1,
-                address2 = request.address2,
-                timeTable = request.timeTable,
-                category = request.category,
-                extraWorker = request.extraWorker,
-                price = request.price
-
-            )
+    suspend fun getUserRequest(requestUIID:String,userId:String){
+        viewModelScope.launch(coroutineContext)  {
+            getUserRequestUseCase.execute(userId,requestUIID)
+                .onSuccess { _viewState.postValue(Triumph(it)) }
+                .onFailure { exception -> _viewState.postValue(Error(exception,"getting user request")) }
+        }
     }
 
     // Function to update user request details
-    suspend fun updateUserRequest(requestId: Int,userId: String) {
+    suspend fun updateUserRequest(requestUIID:String,userId: String,data:UserRequestResponseModel) {
         val date = getCurrentDateTime()
         val dateInString = date.toString("dd/MM/yyyy HH:mm:ss")
-        state?.let { userRequest ->
-            updateUserRequestUseCase.execute(userId, requestId,
+        _viewState?.let { userRequest ->
+            updateUserRequestUseCase.execute(userId, requestUIID,
                 UserRequestRequestModel(
-                    id=requestId,
+                    uuid=requestUIID,
                     userId=userId,
-                    photo = state.photo.toString(),
-                    description = state.description,
-                    address1 = state.address1,
-                    address2 = state.address2,
-                    timeTable = state.timeTable,
-                    category = state.category,
-                    extraWorker = state.extraWorker,
+                    photo = data.photo.toString(),
+                    description = data.description,
+                    address1 = data.address1,
+                    address2 = data.address2,
+                    timeTable = data.timeTable,
+                    category = data.category,
+                    extraWorker = data.extraWorker,
                      date = dateInString,
-                    price = state.price
+                    price = data.price,
+                    sid = null,
+                    sync = null,
+                    offers = null
                 )
             )
         }
@@ -140,6 +150,7 @@ class UpdateUserRequestViewModel @Inject constructor(
         return r
     }
 }
+
 
 
 data class UserRequestData(

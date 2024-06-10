@@ -7,10 +7,9 @@ import com.hfad.model.OfferRequestModel
 class UpdateOfferUseCaseImpl constructor(private val offerRepository: OfferRepository
 ):UpdateOfferUseCase {
     override suspend fun execute(
-        userRequestId: Int,
-        serviceProviderId: String,
+        sid: String,
         offer: OfferRequestModel
     ) {
-        offerRepository.updateOffer( userRequestId, serviceProviderId, offer)
+        offerRepository.updateOffer( sid, offer)
     }
 }

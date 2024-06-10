@@ -3,6 +3,7 @@
 package com.example.ui_users.read
 
 import android.Manifest
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Context
 import android.content.pm.PackageManager
@@ -51,11 +52,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -64,8 +67,10 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,12 +82,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -92,17 +100,29 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import com.example.ui_users.R
+import com.hfad.model.Address
+import com.hfad.model.Loading
+import com.hfad.model.Triumph
+import com.hfad.model.UserProfileResponseModel
+import com.hfad.model.UserRequestResponseModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+private lateinit var context: Context
+private lateinit var activity: Activity
+private var navController: NavHostController? = null
+private lateinit var viewModel: UserProfileViewModel
 @RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class
@@ -110,9 +130,71 @@ import java.io.OutputStream
 @Composable
 fun UserProfileScreen(
     navController: NavController,
-    userViewModel: UserProfileViewModel = hiltViewModel()
+    ViewModel: UserProfileViewModel = hiltViewModel(),
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
+
+    context = LocalContext.current
+    val focusRequester = remember { FocusRequester() }
+
+
     val scope = rememberCoroutineScope()
+//    val scaffoldState = rememberScaffoldState()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+    // Get screen width and height for padding calculation
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
+
+    viewModel= ViewModel
+
+    activity = ((LocalContext.current as? Activity)!!)
+
+    val userData = remember { mutableStateOf(
+        UserProfileResponseModel(
+        id="",
+        email="",
+        name="",
+        surname = "",
+        stars=0.0,
+        profilePicture ="",
+        phoneNumber = "",
+            sid = null,
+            sync = null,
+            requests = null
+
+    )
+    )}
+
+
+
+    LaunchedEffect(Unit) {
+        // Run on first screen compose
+
+        viewModel.viewState.observe(lifecycleOwner) { value ->
+            when (value) {
+                is Loading -> {
+                    //Loading case
+                }
+
+                is Triumph -> {
+                    when (value.data) {
+                        is UserProfileResponseModel -> {
+                            userData.value = value.data
+                        }
+                    }
+                }
+
+                is Error -> {
+
+                }
+
+                else -> {}
+            }
+        }
+    }
     val pagerState = rememberPagerState(pageCount = {2})
     val selectedTabIndex = remember{ derivedStateOf { pagerState.currentPage }}
     Surface(
@@ -157,14 +239,14 @@ fun UserProfileScreen(
                     onClick = { scope.launch { pagerState.animateScrollToPage(1)} }
                 )
             }
-        TabContent(pagerState = pagerState, userViewModel = userViewModel, navController = navController)
+        TabContent(pagerState = pagerState, userViewModel = viewModel, navController = navController,userData.value)
         }
     }
 
     }
 
 @Composable
-private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavController) {
+private fun CreateInfo(userViewModel: UserProfileResponseModel,viewModel: UserProfileViewModel,navController: NavController) {
     Column(
         modifier = Modifier
             .padding(2.dp),
@@ -173,7 +255,7 @@ private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavCon
     ) {
 
         Text(
-            text = "⭐ "+userViewModel.state.stars.toString(),
+            text = "⭐ "+userViewModel.stars.toString(),
             modifier = Modifier.padding(3.dp),
             style = MaterialTheme.typography.titleLarge
         )
@@ -181,11 +263,11 @@ private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavCon
         Row {
             Text(
                 style = MaterialTheme.typography.headlineMedium,
-                text = userViewModel.state.name
+                text = userViewModel.name
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = userViewModel.state.surname,
+                text = userViewModel.surname,
                 style = MaterialTheme.typography.headlineMedium,
             )
         }
@@ -193,7 +275,7 @@ private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavCon
 
         Text(
             color = Color.Black,
-            text = if(userViewModel.state.email.isNullOrEmpty())"-----" else userViewModel.state.email,
+            text = if(userViewModel.email.toString().isNullOrEmpty()) "-----" else userViewModel.email.toString(),
             modifier = Modifier.padding(3.dp),
             style = MaterialTheme.typography.bodyMedium
         )
@@ -201,7 +283,7 @@ private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavCon
 
         Spacer(modifier = Modifier.padding(5.dp))
         Button(onClick = {
-            runBlocking { userViewModel.clearUserId() }
+            runBlocking { viewModel.clearUserId() }
             navController.navigate("login")
             
 
@@ -216,7 +298,7 @@ private fun CreateInfo(userViewModel: UserProfileViewModel,navController: NavCon
         }
 
         Button(onClick = {
-            userViewModel.updateServiceProviderStatus("Accepted")
+            viewModel.updateServiceProviderStatus("Accepted")
 //            navController.navigate("provider")
 
 
@@ -304,7 +386,7 @@ fun AdCard(title: String, body: String) {
 
 
 @Composable
-private fun CreateImageProfile(userViewModel: UserProfileViewModel,modifier: Modifier = Modifier) {
+private fun CreateImageProfile(userViewModel: UserProfileResponseModel,modifier: Modifier = Modifier) {
     Surface(
         modifier = Modifier
             .size(124.dp),
@@ -313,9 +395,9 @@ private fun CreateImageProfile(userViewModel: UserProfileViewModel,modifier: Mod
         tonalElevation = 4.dp,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     ) {
-        if (userViewModel.state.profilePicture.isNotEmpty()) {
+        if (userViewModel.profilePicture.toString().isNotEmpty()) {
             AsyncImage(
-                model = userViewModel.state.profilePicture.toUri(),
+                model = userViewModel.profilePicture.toString().toUri(),
                 contentDescription = "user image",
                 contentScale = ContentScale.Crop,            // crop the image if it's not a square
                 modifier = Modifier
@@ -337,41 +419,9 @@ private fun CreateImageProfile(userViewModel: UserProfileViewModel,modifier: Mod
 
     }
 }
-    @Composable
-    private fun ProfileScreen1(userViewModel: UserProfileViewModel,navController: NavController){
-        Column(modifier = Modifier
-            .fillMaxSize()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(15.dp)
-                    .height(420.dp)
-            )
-            {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(420.dp)
-                        .padding(5.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top
-                ) {
-                    IconButton(onClick = { /*TODO*/ }) {
-
-                    }
-                    CreateImageProfile(userViewModel)
-                    CreateInfo(userViewModel,navController)
-
-                }
-        }
-            AdCard(title ="Help us, invite your friends", body = "Refer ti your friends and gift them 5 € discount when they create their first order, we will donate 5 € to Plant-for-the-Planet.")
-
-
-    }
-    }
 
 @Composable
-private fun ProfileScreen(userViewModel: UserProfileViewModel, navController: NavController) {
+private fun ProfileScreen(userData:UserProfileResponseModel,userViewModel: UserProfileViewModel, navController: NavController) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())) {
@@ -401,8 +451,8 @@ private fun ProfileScreen(userViewModel: UserProfileViewModel, navController: Na
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    CreateImageProfile(userViewModel)
-                    CreateInfo(userViewModel, navController)
+                    CreateImageProfile(userData)
+                    CreateInfo(userData,userViewModel, navController)
                 }
             }
         }
@@ -441,12 +491,12 @@ private fun ProfileScreen(userViewModel: UserProfileViewModel, navController: Na
 @RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TabContent(pagerState: PagerState,userViewModel: UserProfileViewModel,navController: NavController) {
+fun TabContent(pagerState: PagerState,userViewModel: UserProfileViewModel,navController: NavController,userData:UserProfileResponseModel) {
     HorizontalPager(state = pagerState) { index ->
         when (index) {
             0 -> {
                 // Content for the first tab (e.g., HomeScreen)
-                ProfileScreen(userViewModel = userViewModel, navController = navController)
+                ProfileScreen( userData = userData, userViewModel = userViewModel, navController = navController)
                 userViewModel.setUserRole("Owner")
             }
 
