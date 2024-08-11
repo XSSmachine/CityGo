@@ -19,8 +19,8 @@ interface RemoteUserRequestDao {
         @GET("requests.json")
         suspend fun getAll(): Response<Map<String, UserRequestRemoteEntity>>
 
-//        @GET("requests.json")
-//        suspend fun getAllForCurrentUser(@Query("orderBy") orderBy: String = "\"UserID\"", @Query("equalTo") userId: String): List< UserRequestRemoteEntity>
+        @GET("requests.json")
+        suspend fun getAllForCurrentUser(@Query("orderBy") orderBy: String = "\"UserID\"", @Query("equalTo") userId: String): Response<Map<String, UserRequestRemoteEntity>>
 
         @GET("requests/{sid}.json")
         suspend fun getById(@Path("sid") sid: String): retrofit2.Response<UserRequestRemoteEntity>

@@ -305,6 +305,7 @@ fun UserRequestItem(
             Log.d("TRUE/FALSE",viewModel.checkOffersForRequest(userRequest.sid).toString())
             trueFalse.value = viewModel.checkOffersForRequest(userRequest.sid)
         }
+        isLoading.value = false
 
 
 
@@ -333,7 +334,7 @@ fun UserRequestItem(
                 else -> {}
             }
         }
-        isLoading.value = false
+
     }
     Card(
         modifier = Modifier

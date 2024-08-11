@@ -113,6 +113,7 @@ fun OfferResponseModel.toOfferListResponseModel(serviceProviderProfileState: Ser
 @HiltViewModel
 class ReadUserRequestViewModel @Inject constructor(
     private val getAllContactsUseCase: GetAllCurrentUserRequestsUseCase,
+    private val getAllCurrentUserRequestsUseCase: GetAllCurrentUserRequestsUseCase,
     private val getUserIdUseCase: GetUserIdUseCase,
     private val getAllOffersUseCase: GetAllOffersUseCase,
     private val getServiceProviderStatusUseCase: GetServiceProviderProfileUseCase,
@@ -311,7 +312,7 @@ class ReadUserRequestViewModel @Inject constructor(
 
     suspend fun getMyUserRequest() {
         viewModelScope.launch(coroutineContext) {
-            getAllContactsUseCase.execute(getIdValue())
+            getAllCurrentUserRequestsUseCase.execute(getIdValue())
                 .onSuccess { _userRequests.postValue(Triumph(it.map { it.toContactListResponseModel() })) }
                 .onFailure { _userRequests.postValue(Error(it, "getting all my user requests")) }
         }

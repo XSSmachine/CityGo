@@ -8,7 +8,7 @@ import com.hfad.model.UserRequestResponseModel
 interface UserRequestRemoteDataSource {
     suspend fun getAll(): RepoResult<List<UserRequestResponseModel>>
 
-//    suspend fun getAllForCurrentUser(userId: String): RepoResult<List<UserRequestResponseModel>>
+    suspend fun getAllForCurrentUser(userId: String): RepoResult<List<UserRequestResponseModel>>
 
     suspend fun getOne(sid:String): RepoResult<UserRequestResponseModel>
 

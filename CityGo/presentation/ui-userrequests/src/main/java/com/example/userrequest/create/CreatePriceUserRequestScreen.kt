@@ -232,7 +232,7 @@ fun CreatePriceUserRequestScreen(
             Button(onClick = {
                 createUserRequestViewModel.setCategory(selectedSize!!)
                 createUserRequestViewModel.createContact()
-                navController.navigate("readMy")
+                navController.navigate("home")
             },
                 modifier = Modifier
                     .fillMaxWidth()

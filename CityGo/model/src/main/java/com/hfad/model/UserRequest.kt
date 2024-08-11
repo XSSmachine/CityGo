@@ -43,6 +43,26 @@ data class UserRequestRequestModel(
     val offers: List<String>?
 )
 
+fun UserRequestResponseModel.toRequestModel(): UserRequestRequestModel {
+    return UserRequestRequestModel(
+        uuid = this.uuid,
+        userId = this.userId,
+        photo = this.photo.toString(), // Convert Uri to String
+        description = this.description,
+        address1 = this.address1,
+        address2 = this.address2,
+        timeTable = this.timeTable,
+        date = this.date,
+        category = this.category,
+        extraWorker = this.extraWorker,
+        price = this.price,
+        sid = this.sid,
+        sync = this.sync,
+        offers = this.offers
+    )
+}
+
+
 data class Address(
     val addressName: String,
     val latitude: Double?,

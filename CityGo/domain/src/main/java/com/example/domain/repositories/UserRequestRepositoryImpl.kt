@@ -1,6 +1,9 @@
 package com.example.domain.repositories
 
+import android.content.Context
 import android.util.Log
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 
 import com.example.domain.interfaces.UserRequestRepository
 import com.example.network.RemoteImageDataSource
@@ -13,12 +16,14 @@ import com.hfad.model.UserRequestResponseModel
 import com.example.repository.interfaces.UserRequestDataSource
 import com.hfad.model.BasicError
 import com.hfad.model.Failure
+import com.hfad.model.Progress
 import com.hfad.model.RepoResult
 import com.hfad.model.ServiceProviderProfileResponseModel
 import com.hfad.model.Success
 import com.hfad.model.UserProfileRequestModel
 import com.hfad.model.onFailure
 import com.hfad.model.onSuccess
+import com.hfad.model.toRequestModel
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -37,17 +42,44 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
 
     }
 
-    override suspend fun getAllUserRequestsForCurrentUser(userId:String): RepoResult<List<UserRequestResponseModel>> {
-        try {
-            userRequestDataSource.getAllForCurrentUser(userId)
-                .onSuccess { return Success(it) }
-                .onFailure { return Failure(it) }
-        }catch (e:Exception){
+    override suspend fun getAllUserRequestsForCurrentUser(userId: String): RepoResult<List<UserRequestResponseModel>> {
+        return try {
+            when (val remoteResult = remoteDataSource.getAllForCurrentUser(userId.trim())) {
+                is Success -> {
+                    val remoteList = remoteResult.data
+                    Log.d("REMOTE LIST", remoteList.toString())
+                    when (val localResult = userRequestDataSource.getAllForCurrentUser(userId)) {
+                        is Success -> {
+                            val localList = localResult.data
+                            Log.d("LOCAL LIST", localList.toString())
+
+                            val missingEntries = remoteList.filterNot { remoteItem ->
+                                localList.any { localItem -> localItem.sid == remoteItem.sid }
+                            }
+                            if (missingEntries.isNotEmpty()) {
+                                missingEntries.forEach { element ->
+                                    userRequestDataSource.create(element.toRequestModel())
+                                }
+                            }
+                            Success(remoteList)
+                        }
+                        is Failure -> Failure(localResult.error)
+                        is Progress -> TODO()
+                    }
+                }
+                is Failure -> {
+                    Log.d("REMOTE LIST", remoteResult.error.throwable.message.toString())
+                    userRequestDataSource.getAllForCurrentUser(userId)
+                }
+
+                is Progress -> TODO()
+            }
+        } catch (e: Exception) {
             e.printStackTrace()
-            Failure(BasicError(Throwable("Get All Current User Requests Fetch failed")))
+            Failure(BasicError(Throwable("Get All Current User Requests Fetch failed", e)))
         }
-        return Failure(BasicError(Throwable("Get All Current User Requests Fetch failed")))
     }
+
 
     override suspend fun getUserRequest(userId:String, uuid: String): RepoResult<UserRequestResponseModel> {
         try {
@@ -194,3 +226,4 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
         }
     }
 }
+

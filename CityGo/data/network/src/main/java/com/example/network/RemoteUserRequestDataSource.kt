@@ -77,16 +77,33 @@ class RemoteUserRequestDataSource constructor(private val dao: RemoteUserRequest
 
 
 
-//    override suspend fun getAllForCurrentUser(userId: String): RepoResult<List<UserRequestResponseModel>> = try{
-//        val list = dao.getAllForCurrentUser(userId = userId).map { it.toUserRequestResponseModel() }
-//        if (list!=null){
-//            Success(list)
-//        }else{
-//            Failure(BasicError(Exception("User not found for ID: $userId")))
-//        }
-//    }catch (e:Exception){
-//        Failure(BasicError(e))
-//    }
+    override suspend fun getAllForCurrentUser(userID: String): RepoResult<List<UserRequestResponseModel>> = try{
+        val response = dao.getAllForCurrentUser(userId = "\"$userID\"")
+
+        if (response.isSuccessful) {
+            val responseBody = response.body()
+            if (responseBody != null) {
+                Log.d("RESPONSEBODY",responseBody.values.toString())
+                val list = responseBody.values.map { it.toUserRequestResponseModel() }.reversed()
+                if (list.isNotEmpty()) {
+                    Log.d("GETALLMY", "SUCCESS: ${responseBody.toString()}")
+                    Success(list)
+                } else {
+                    Log.d("GETALLMY", "FAIL: User requests are empty")
+                    Failure(BasicError(Exception("User requests are empty")))
+                }
+            } else {
+                Log.d("GETALLMY", "FAIL: Response body is null")
+                Failure(BasicError(Exception("Response body is null")))
+            }
+        } else {
+            val errorBody = response.errorBody()?.string()
+            Log.d("GETALLMY", "FAIL: Failed to fetch user requests: $errorBody")
+            Failure(BasicError(Exception("Failed to fetch user requests: $errorBody")))
+        }
+    }catch (e:Exception){
+        Failure(BasicError(e))
+    }
 
 
     override suspend fun delete(sid: String): RepoResult<Unit> {

@@ -771,7 +771,7 @@ fun ShowDatePicker(context: Context, onDateSelected: (String) -> Unit) {
                 .clickable { datePickerDialog.show() },
             colors = TextFieldDefaults.colors(
                 focusedTextColor = Color.DarkGray,
-                disabledTextColor = Color.Transparent,
+                disabledTextColor = Color.Black,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
                 focusedIndicatorColor = Color.Gray,

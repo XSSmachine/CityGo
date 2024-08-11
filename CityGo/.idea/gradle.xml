@@ -22,6 +22,7 @@
             <option value="$PROJECT_DIR$/presentation/ui-home" />
             <option value="$PROJECT_DIR$/presentation/ui-userrequests" />
             <option value="$PROJECT_DIR$/presentation/ui-users" />
+            <option value="$PROJECT_DIR$/work-manager" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />
