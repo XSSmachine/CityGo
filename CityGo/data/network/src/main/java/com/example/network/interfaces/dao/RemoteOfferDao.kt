@@ -40,7 +40,7 @@ interface RemoteOfferDao {
     ): retrofit2.Response<Unit>
 
     @PATCH("offer/{sid}.json")
-    suspend fun updateOfferStatus(@Path("sid") sid: String, @Body status: String) : Response<Unit>
+    suspend fun updateOfferStatus(@Path("sid") sid: String, @Body status: Map<String,String>) : Response<Unit>
 
     @POST("offer.json")
     suspend fun addOffer(@Body updatedOfferRemoteEntity: OfferRemoteEntity): retrofit2.Response<ResponseBody>

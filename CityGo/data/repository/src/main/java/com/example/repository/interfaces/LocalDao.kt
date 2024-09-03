@@ -122,8 +122,8 @@ interface UserDao {
     /**
      * Updates the profile information of a user in the database.
      */
-    @Query("UPDATE users SET name = :name, surname = :surname, profilePicture= :profilePic WHERE id = :id")
-    suspend fun updateUser(id: String, name: String, surname: String, profilePic: String)
+    @Query("UPDATE users SET name = :name, surname = :surname, profilePicture= :profilePic, email= :email,sync= :sync WHERE id = :id")
+    suspend fun updateUser(id: String, name: String, surname: String, profilePic: String, email: String,sync:Long?)
 
     /**
      * Deletes a user by its ID from the database.

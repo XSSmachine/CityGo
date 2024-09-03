@@ -156,7 +156,8 @@ class OfferRepositoryImpl constructor(private val offerDataSource: OfferDataSour
         sid: String,
         status: String
     ): RepoResult<Unit> {
-        return remoteOfferDataSource.updateStatus( sid, status)
+        val currentStatus = mapOf(Pair("Status",status))
+        return remoteOfferDataSource.updateStatus( sid, currentStatus)
     }
 
     override suspend fun createOffer(offer: OfferRequestModel): RepoResult<Unit> {

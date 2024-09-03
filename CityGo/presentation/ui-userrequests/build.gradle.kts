@@ -78,6 +78,10 @@ dependencies {
 
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.24.13-rc")
 
+    implementation("androidx.compose.runtime:runtime:1.6.8")
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+    implementation("androidx.compose.runtime:runtime-rxjava2:1.6.8")
+
 }
 
 kapt {

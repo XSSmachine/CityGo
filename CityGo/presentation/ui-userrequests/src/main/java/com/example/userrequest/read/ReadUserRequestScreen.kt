@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,33 +19,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,155 +51,132 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.userrequest.R
-import com.example.userrequest.readAll.UserRequestItem
+import com.example.userrequest.create.responsiveHeight
+import com.example.userrequest.create.responsiveWidth
 import com.hfad.model.Address
-import com.hfad.model.ErrorCode
 import com.hfad.model.Loading
 import com.hfad.model.OfferResponseModel
 import com.hfad.model.Triumph
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 private lateinit var context: Context
 private lateinit var activity: Activity
 private var navController: NavHostController? = null
 private lateinit var viewModel: ReadUserRequestViewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "SuspiciousIndentation")
 @Composable
 fun ReadUserRequestScreen(
     navController: NavController,
-    onUserRequestClick: (String,String) -> Unit,
+    onUserRequestClick: (String, String) -> Unit,
     onUserRequestButtonClick: (String) -> Unit,
-    onCygoOfferClick: (String,String) -> Unit,
+    onCygoOfferClick: (String, String) -> Unit,
     ViewModel: ReadUserRequestViewModel = hiltViewModel(),
-    lifecycleOwner:LifecycleOwner = LocalLifecycleOwner.current
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-
-
     context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-
     val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
-    val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
     viewModel = ViewModel
-
     activity = ((LocalContext.current as? Activity)!!)
 
-
     val role = remember { mutableStateOf("") }
-
-    val userRequests = remember { mutableStateListOf(
-        UserRequestListResponseModel(
-            uuid = "",
-            userId="",
-            photo="".toUri(),
-            description="",
-            address1 = Address("123 Main St", null, null, false, 0, "", ""),
-            address2 = Address("123 Main St", null, null, false, 0, "", ""),
-            timeTable="",
-            category="",
-            extraWorker=false,
-            price=0,
-            sid = ""
-
-        )) }
-
+    val userRequests = remember {
+        mutableStateListOf(
+            UserRequestListResponseModel(
+                uuid = "",
+                userId = "",
+                photo = "".toUri(),
+                description = "",
+                address1 = Address("123 Main St", null, null, false, 0, "", ""),
+                address2 = Address("123 Main St", null, null, false, 0, "", ""),
+                timeTable = "",
+                category = "",
+                extraWorker = false,
+                price = 0,
+                sid = "",
+                status = "",
+                offerPrice = 0
+            )
+        )
+    }
 
     val SPuserRequests =
-
-        remember { mutableStateListOf(
-        UserRequestListResponseModel(
-            uuid = "",
-            userId="",
-            photo="".toUri(),
-            description="",
-            address1 = Address("123 Main St", null, null, false, 0, "", ""),
-            address2 = Address("123 Main St", null, null, false, 0, "", ""),
-            timeTable="",
-            category="",
-            extraWorker=false,
-            price=0,
-            sid = ""
-        )) }
-
+        remember {
+            mutableStateListOf(
+                UserRequestListResponseModel(
+                    uuid = "",
+                    userId = "",
+                    photo = "".toUri(),
+                    description = "",
+                    address1 = Address("123 Main St", null, null, false, 0, "", ""),
+                    address2 = Address("123 Main St", null, null, false, 0, "", ""),
+                    timeTable = "",
+                    category = "",
+                    extraWorker = false,
+                    price = 0,
+                    sid = "",
+                    status = "",
+                    offerPrice = 0
+                )
+            )
+        }
 
 
     LaunchedEffect(Unit) {
-        // Run on first screen compose
         role.value = viewModel.getUserRole()
-        if(viewModel.getUserRole()=="Cygo"){
+        if (viewModel.getUserRole() == "Cygo") {
             viewModel.getServiceProviderOffers()
-        }else{
+        } else {
             viewModel.getMyUserRequest()
         }
-        viewModel.userRequests.observe(lifecycleOwner){ value ->
-            when(value){
-                is Loading ->{
-                    //Loading case
-                }
+        viewModel.userRequests.observe(lifecycleOwner) { value ->
+            when (value) {
+                is Loading -> {}
                 is Triumph -> {
-                    when(value.data){
+                    when (value.data) {
                         is List<UserRequestListResponseModel> -> {
                             userRequests.clear()
                             userRequests.addAll(value.data)
-
                         }
-
                     }
                 }
-                is Error -> {
 
-
-                }
+                is Error -> {}
                 else -> {}
             }
         }
 
-        viewModel.spUserRequests.observe(lifecycleOwner){ value ->
-            when(value){
-                is Loading ->{
-                    //Loading case
-                }
+        viewModel.spUserRequests.observe(lifecycleOwner) { value ->
+            when (value) {
+                is Loading -> {}
                 is Triumph -> {
-                    when(value.data){
+                    when (value.data) {
                         is List<UserRequestListResponseModel> -> {
                             SPuserRequests.clear()
                             SPuserRequests.addAll(value.data)
                         }
-
                     }
                 }
-                is Error -> {
 
-                }
+                is Error -> {}
                 else -> {}
             }
         }
@@ -213,41 +187,101 @@ fun ReadUserRequestScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = "My activities")
+                    Text(text = stringResource(id = R.string.my_activity))
                 },
 
-            )
+                )
         }
     ) {
-
+        SideEffect {
+            role.value = viewModel.getUserRole()
+            if (role.value == "Cygo") {
+                scope.launch {
+                    viewModel.getServiceProviderOffers()
+                }
+            } else {
+                scope.launch {
+                    viewModel.getMyUserRequest()
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-
             LazyColumn(
-                modifier = Modifier.fillMaxHeight()
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(top = 50.dp)
             ) {
-                if(role.value=="Owner"){
-                    itemsIndexed(userRequests) { index, item ->
+                if (viewModel.getUserRole() == "Owner") {
+                    if (userRequests.isEmpty() || userRequests.all { it.userId == "" }) {
+                        item {
+                            Box(modifier = Modifier.fillParentMaxSize()) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.empty_box), // Replace with your image resource
+                                        contentDescription = "No data image",
+                                        modifier = Modifier.size(25.responsiveHeight()) // Adjust size as needed
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = stringResource(id = R.string.no_data_text))
+                                }
+                            }
+                        }
+                    } else {
+                        itemsIndexed(userRequests) { index, item ->
 
-                        UserRequestItem(index = index, userRequest = item, onUserRequestClicked = onUserRequestClick,onUserRequestButtonClicked = onUserRequestButtonClick,onCygoOfferClick=onCygoOfferClick,
-                            viewModel,lifecycleOwner)
-
+                            UserRequestItem(
+                                index = index,
+                                userRequest = item,
+                                onUserRequestClicked = onUserRequestClick,
+                                onUserRequestButtonClicked = onUserRequestButtonClick,
+                                onCygoOfferClick = onCygoOfferClick,
+                                viewModel = viewModel,
+                                lifecycleOwner = lifecycleOwner
+                            )
+                        }
                     }
-                }else{
-                    itemsIndexed(SPuserRequests) { index, item ->
-
-                        UserRequestItem(index = index, userRequest = item, onUserRequestClicked = onUserRequestClick, onUserRequestButtonClicked = onUserRequestButtonClick,onCygoOfferClick=onCygoOfferClick,
-                            viewModel,lifecycleOwner)
-
+                } else if (viewModel.getUserRole() == "Cygo") {
+                    if (SPuserRequests.isEmpty() || SPuserRequests.all { it.userId == "" }) {
+                        item {
+                            Box(modifier = Modifier.fillParentMaxSize()) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.empty_box), // Replace with your image resource
+                                        contentDescription = "No data image",
+                                        modifier = Modifier.size(25.responsiveHeight()) // Adjust size as needed
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = stringResource(id = R.string.no_data_text))
+                                }
+                            }
+                        }
+                    } else {
+                        itemsIndexed(SPuserRequests) { index, item ->
+                            UserRequestItem(
+                                index = index,
+                                userRequest = item,
+                                onUserRequestClicked = onUserRequestClick,
+                                onUserRequestButtonClicked = onUserRequestButtonClick,
+                                onCygoOfferClick = onCygoOfferClick,
+                                viewModel = viewModel,
+                                lifecycleOwner = lifecycleOwner
+                            )
+                        }
                     }
                 }
-
             }
-
-
         }
 
     }
@@ -259,30 +293,32 @@ fun ReadUserRequestScreen(
 fun UserRequestItem(
     index: Int,
     userRequest: UserRequestListResponseModel,
-    onUserRequestClicked: (String,String) -> Unit,
+    onUserRequestClicked: (String, String) -> Unit,
     onUserRequestButtonClicked: (String) -> Unit,
-    onCygoOfferClick: (String,String) -> Unit,
+    onCygoOfferClick: (String, String) -> Unit,
     viewModel: ReadUserRequestViewModel,
-    lifecycleOwner:LifecycleOwner
+    lifecycleOwner: LifecycleOwner
 ) {
 
     val isLoading = remember { mutableStateOf(true) }
-    val status = remember { mutableStateOf("") }
-    val trueFalse = remember { mutableStateOf(false) }
-    val offer = remember { mutableStateOf(
-        OfferResponseModel(
-            id = 0,
-            price = 0,
-            serviceProviderId = "",
-            sid = "",
-            status = "",
-            sync = null,
-            timeTable = "",
-            userRequestUUID = ""
+    var trueFalse by remember(userRequest.sid) { mutableStateOf(false) }
+    var offer by remember(userRequest.sid) {
+        mutableStateOf(
+            OfferResponseModel(
+                id = 0,
+                price = 0,
+                serviceProviderId = "",
+                sid = "",
+                status = "",
+                sync = null,
+                timeTable = "",
+                userRequestUUID = ""
+            )
         )
-    ) }
+    }
 
     val isEvenIndex = index % 2 == 0
+    val cardColor = if (isEvenIndex) Color(0xFFFFF9C4) else Color(0xFFE1F5FE)
     val shape = when {
         isEvenIndex -> {
             RoundedCornerShape(
@@ -290,6 +326,7 @@ fun UserRequestItem(
                 bottomEnd = 50f
             )
         }
+
         else -> {
             RoundedCornerShape(
                 topEnd = 50f,
@@ -298,13 +335,17 @@ fun UserRequestItem(
         }
     }
 
-    LaunchedEffect(Unit) {
-        status.value = viewModel.getSingleOfferStatus(userRequest.uuid)
+    LaunchedEffect(userRequest.sid) {
+
         viewModel.getSingleOffer(userRequest.sid)
-        if(!userRequest.sid.isNullOrEmpty()){
-            Log.d("TRUE/FALSE",viewModel.checkOffersForRequest(userRequest.sid).toString())
-            trueFalse.value = viewModel.checkOffersForRequest(userRequest.sid)
+        if (!userRequest.sid.isNullOrEmpty()) {
+
+            Log.d("TRUE/FALSE", viewModel.checkOffersForRequest(userRequest.sid).toString())
+            trueFalse = viewModel.checkOffersForRequest(userRequest.sid)
+
+
         }
+
         isLoading.value = false
 
 
@@ -318,8 +359,8 @@ fun UserRequestItem(
                 is Triumph -> {
                     when (value.data) {
                         is OfferResponseModel -> {
-                            Log.d("userOffer-Sucess", value.data.toString())
-                            offer.value = value.data
+
+                            offer = value.data
 
                         }
 
@@ -339,160 +380,184 @@ fun UserRequestItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 50.dp),
+            .padding(horizontal = 2.responsiveWidth(), vertical = 1.responsiveHeight()),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.responsiveHeight()),
         shape = shape,
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         onClick = {
-            if(viewModel.getUserRole()=="Owner")
-            onUserRequestClicked(userRequest.uuid,userRequest.userId)
+            if (viewModel.getUserRole() == "Owner")
+                onUserRequestClicked(userRequest.uuid, userRequest.userId)
             else
-                onCygoOfferClick(userRequest.userId,userRequest.sid)
+                onCygoOfferClick(userRequest.userId, userRequest.sid)
         }
     ) {
-        if (viewModel.getUserRole()=="Cygo"){
-            Row {
-                Text(text = "Your offer is: "+status.value)
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(onClick = {
-                    runBlocking{
-                        viewModel.deleteOffer(offer.value.sid!!)
-                    } }) {
-
-                }
-            }
-        }
-        
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(2.responsiveWidth())
         ) {
-            // Picture
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .padding(8.dp)
-            ) {
-                if (userRequest.photo != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(userRequest.photo),
-                        contentDescription = "Image",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape = RoundedCornerShape(8.dp))
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                        contentDescription = "Image",
-                        modifier = Modifier.fillMaxSize()
-                    )
+            // Offer data section
+            if (viewModel.getUserRole() == "Cygo" && !isLoading.value) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(id = R.string.my_offer),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Status: ${userRequest.status}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = "Price: ${userRequest.offerPrice} €",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    AnimatedVisibility(visible = userRequest.status == "Pending") {
+                        IconButton(
+                            onClick = {
+                                runBlocking {
+                                    viewModel.deleteOffer(offer.sid!!)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Offer",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+
                 }
+                Divider(modifier = Modifier.padding(vertical = 1.responsiveHeight()))
             }
 
-            // Texts
-            Column(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .weight(1f)
+            // User request data section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Timetable
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Timetable",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = userRequest.timeTable.substringAfter(","),
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 15.sp
-                    )
-                }
+                // Image
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(userRequest.photo ?: R.drawable.ic_launcher_foreground)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(20.responsiveWidth())
+                        .clip(RoundedCornerShape(2.responsiveWidth()))
+                )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.width(2.responsiveWidth()))
 
-                // Address name
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Address",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${userRequest.address1.addressName} | ${userRequest.address2.addressName}",
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 10.sp
-                    )
-                }
+                // User request details
+                Column {
+                    // Timetable
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Timetable",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(3.responsiveWidth())
+                        )
+                        Spacer(modifier = Modifier.width(1.responsiveWidth()))
+                        Text(
+                            text = formatTimeTable(userRequest.timeTable),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(1.responsiveHeight()))
 
-                // Price
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Price",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Ukupna cijena ${userRequest.price}",
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                    // Address
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Address",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(3.responsiveWidth())
+                        )
+                        Spacer(modifier = Modifier.width(1.responsiveWidth()))
+                        Text(
+                            text = "${userRequest.address1.addressName} | ${userRequest.address2.addressName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(1.responsiveHeight()))
 
-                if (isLoading.value){
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(34.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }else {
-                    if (trueFalse.value && viewModel.getUserRole() == "Owner") {
-                        Button(
-                            onClick = { onUserRequestButtonClicked(userRequest.sid) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Yellow,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text(text = "Select a cygo")
-                        }
+                    // Price
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Price",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(3.responsiveWidth())
+                        )
+                        Spacer(modifier = Modifier.width(1.responsiveWidth()))
+                        Text(
+                            text = stringResource(id = R.string.total_amount) + " ${userRequest.price}€",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(1.responsiveHeight()))
+
+                    // Button
+                    if (isLoading.value) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(3.responsiveWidth()),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                     } else if (viewModel.getUserRole() == "Owner") {
-                        Button(
-                            onClick = { /* update offer price by 5 euro */ },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Yellow,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text(text = "+5€")
+                        if (!trueFalse) {
+                            Button(
+                                onClick = { /* update offer price by 5 euro */ },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                                modifier = Modifier.height(5.responsiveHeight())
+                            ) {
+                                Text(text = "+5€", style = MaterialTheme.typography.labelMedium)
+                            }
+                        } else {
+                            Button(
+                                onClick = { onUserRequestButtonClicked(userRequest.sid) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.height(5.responsiveHeight())
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.select_cygo_text),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
                         }
                     }
                 }
-                // Button
-
             }
         }
     }
 }
 
+
+fun formatTimeTable(timeTable: String): String {
+    val parts = timeTable.split(",")
+    if (parts.size >= 2) {
+        val time = parts[0].trim()
+        val date = parts[1].trim()
+        return "$time, $date"
+    }
+    return timeTable
+}
 
 

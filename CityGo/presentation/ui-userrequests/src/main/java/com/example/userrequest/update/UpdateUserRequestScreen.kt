@@ -92,66 +92,49 @@ private lateinit var context: Context
 private lateinit var activity: Activity
 private var navController: NavHostController? = null
 private lateinit var viewModel: UpdateUserRequestViewModel
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateUserRequestScreen(
     ViewModel: UpdateUserRequestViewModel,
     requestId: String,
-    userId:String,
+    userId: String,
     navigateUp: () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-
     context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-
-    val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
-    val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
     viewModel = ViewModel
-
     activity = ((LocalContext.current as? Activity)!!)
 
-
-    val state = remember { mutableStateOf(
-        UserRequestResponseModel(
-        uuid ="",
-        date = "",
-        userId = "",
-        photo = "".toUri(),
-        description="",
-        address1 = Address("",null,null,true,0,"",""),
-        address2= Address("",null,null,true,0,"",""),
-        timeTable="",
-        category="",
-        extraWorker=false,
-        price=0,
+    val state = remember {
+        mutableStateOf(
+            UserRequestResponseModel(
+                uuid = "",
+                date = "",
+                userId = "",
+                photo = "".toUri(),
+                description = "",
+                address1 = Address("", null, null, true, 0, "", ""),
+                address2 = Address("", null, null, true, 0, "", ""),
+                timeTable = "",
+                category = "",
+                extraWorker = false,
+                price = 0,
                 sid = null,
-            sync = null,
-            offers = null
+                sync = null,
+                offers = null
+            )
         )
-    ) }
+    }
 
 
 
     LaunchedEffect(Unit) {
-        // Run on first screen compose
         viewModel.getUserRequest(requestId, userId)
-
         viewModel.viewState.observe(lifecycleOwner) { value ->
             when (value) {
-                is Loading -> {
-                    //Loading case
-                }
+                is Loading -> {}
 
                 is Triumph -> {
                     when (value.data) {
@@ -162,25 +145,20 @@ fun UpdateUserRequestScreen(
                     }
                 }
 
-                is Error -> {
-
-                }
-
+                is Error -> {}
                 else -> {}
             }
         }
     }
 
-        // Fetch user request details when the screen is first displayed
-        LaunchedEffect(Unit) {
-            viewModel.getUserRequest(requestId, userId)
-        }
 
-        // Update user request details when the save button is clicked
-        val saveButtonEnabled =
-            state.value.description.isNotBlank() && state.value.timeTable.isNotBlank()
+    LaunchedEffect(Unit) {
+        viewModel.getUserRequest(requestId, userId)
+    }
+    val saveButtonEnabled =
+        state.value.description.isNotBlank() && state.value.timeTable.isNotBlank()
     val saveButtonAction: suspend () -> Unit = {
-        viewModel.updateUserRequest(requestId, userId,state.value)
+        viewModel.updateUserRequest(requestId, userId, state.value)
         navigateUp()
     }
 
@@ -213,39 +191,30 @@ fun UpdateUserRequestScreen(
                     .padding(top = 50.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Image
-                ImageInput(state.value.photo.toString()) {uri ->
-                // Handle the received URI here, for example, update selfiePicture state
+                ImageInput(state.value.photo.toString()) { uri ->
                     if (uri != null) {
                         state.value = state.value.copy(photo = uri)
                     }
-            }
-
+                }
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Description TextField
                 TextField(
                     value = state.value.description,
-                    onValueChange = { newValue -> state.value = state.value.copy(description = newValue) },
+                    onValueChange = { newValue ->
+                        state.value = state.value.copy(description = newValue)
+                    },
                     label = { Text(text = "Description") },
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Category Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation =  CardDefaults.cardElevation(
+                    elevation = CardDefaults.cardElevation(
                         defaultElevation = 8.dp
                     )
                 ) {
                     Text(text = state.value.category)
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Extra Worker Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(
@@ -263,27 +232,20 @@ fun UpdateUserRequestScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Address 1 TextFields
-                addressDetailss1(state.value){
-                    state.value=it
+                addressDetailss1(state.value) {
+                    state.value = it
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Address 2 TextFields
-               addressDetailss2(state.value){
-                   state.value=it
-               }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Timetable Car
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Price TextField
+                addressDetailss2(state.value) {
+                    state.value = it
+                }
+                Spacer(modifier = Modifier.height(32.dp))
                 TextField(
                     value = state.value.price.toString(),
-                    onValueChange = {state.value = state.value.copy(price = it.toInt()) },
+                    onValueChange = { state.value = state.value.copy(price = it.toInt()) },
                     label = { Text(text = "Price") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -305,12 +267,16 @@ fun ExtraWorkerSwitch(
             uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        ))
+        )
+    )
 }
 
 
 @Composable
-fun addressDetailss1(state: UserRequestResponseModel, onStateChange: (UserRequestResponseModel) -> Unit) {
+fun addressDetailss1(
+    state: UserRequestResponseModel,
+    onStateChange: (UserRequestResponseModel) -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -386,9 +352,11 @@ fun addressDetailss1(state: UserRequestResponseModel, onStateChange: (UserReques
 }
 
 
-
 @Composable
-fun addressDetailss2(state: UserRequestResponseModel, onStateChange: (UserRequestResponseModel) -> Unit) {
+fun addressDetailss2(
+    state: UserRequestResponseModel,
+    onStateChange: (UserRequestResponseModel) -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -464,12 +432,12 @@ fun addressDetailss2(state: UserRequestResponseModel, onStateChange: (UserReques
 }
 
 
-
 @Composable
-fun SinglePhotoPicker(onPhotoPicked: (Uri?) -> Unit){
+fun SinglePhotoPicker(onPhotoPicked: (Uri?) -> Unit) {
     val context = LocalContext.current
     val file = remember { context.createImageFile() }
-    val uri = remember { FileProvider.getUriForFile(context, "${context.packageName}.provider", file) }
+    val uri =
+        remember { FileProvider.getUriForFile(context, "${context.packageName}.provider", file) }
     val singlePhotoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { pickedImageUri: Uri? ->
@@ -495,17 +463,17 @@ fun SinglePhotoPicker(onPhotoPicked: (Uri?) -> Unit){
 
     Column {
         Button(
-            onClick = {singlePhotoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onClick = { singlePhotoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             shape = RoundedCornerShape(10.dp), // This makes the button square
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) {
-            Image(painterResource(R.drawable.baseline_image_24), "gallery", modifier = Modifier.size(100.dp) )
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)
+        ) {
+            Image(
+                painterResource(R.drawable.baseline_image_24),
+                "gallery",
+                modifier = Modifier.size(100.dp)
+            )
         }
 
-//        AsyncImage(
-//            model = uri,
-//            contentDescription = null,
-//            modifier = Modifier.size(250.dp)
-//            )
     }
 }
 
@@ -513,7 +481,6 @@ fun SinglePhotoPicker(onPhotoPicked: (Uri?) -> Unit){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageInput(text: String, onImageUriReceived: (Uri?) -> Unit) {
-
 
 
     Column {
@@ -529,21 +496,23 @@ fun ImageInput(text: String, onImageUriReceived: (Uri?) -> Unit) {
                 model = imageUri,
                 contentDescription = "Image",
                 modifier = Modifier
-                    .size(250.dp)
+                    .size(220.dp)
                     .clickable(onClick = { isSheetOpen = true })
             )
         } else if (text == "Default") {
-            Image(painter = painterResource(id = R.drawable.baseline_image_24),
+            Image(
+                painter = painterResource(id = R.drawable.baseline_image_24),
                 contentDescription = "Default image",
                 modifier = Modifier
-                    .size(250.dp)
+                    .size(220.dp)
                     .clickable(onClick = { isSheetOpen = true })
             )
         } else if (text == "User") {
-            Image(painter = painterResource(id = R.drawable.user),
+            Image(
+                painter = painterResource(id = R.drawable.user),
                 contentDescription = "Default image",
                 modifier = Modifier
-                    .size(250.dp)
+                    .size(220.dp)
                     .clickable(onClick = { isSheetOpen = true })
             )
         } else {
@@ -553,84 +522,85 @@ fun ImageInput(text: String, onImageUriReceived: (Uri?) -> Unit) {
                 model = text.toUri(),
                 contentDescription = "Current Image",
                 modifier = Modifier
-                    .size(250.dp)
+                    .size(220.dp)
                     .clickable(onClick = { isSheetOpen = true })
             )
 
         }
 
         Box {
-        if (isSheetOpen) {
+            if (isSheetOpen) {
 
 
-            ModalBottomSheet(
-                onDismissRequest = { isSheetOpen = false },
-                sheetState = sheetState,
-                shape = RoundedCornerShape(25.dp),
-                containerColor = Color.Gray,
-                content = {
-                    Column(
-                        content = {
-//                               Spacer(modifier = Modifier.padding(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                SinglePhotoPicker { uri ->
-                                    if (uri != null) {
-                                        imageUri = uri
-                                        onImageUriReceived(uri)
+                ModalBottomSheet(
+                    onDismissRequest = { isSheetOpen = false },
+                    sheetState = sheetState,
+                    shape = RoundedCornerShape(25.dp),
+                    containerColor = Color.Gray,
+                    content = {
+                        Column(
+                            content = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    SinglePhotoPicker { uri ->
+                                        if (uri != null) {
+                                            imageUri = uri
+                                            onImageUriReceived(uri)
+                                        }
+                                        isSheetOpen = false
                                     }
-                                    isSheetOpen = false
-                                }
-                                Spacer(modifier = Modifier.width(30.dp))
-                                CameraPhotoTaker { uri ->
-                                    if (uri != null) {
-                                        imageUri = uri
-                                        onImageUriReceived(uri)
+                                    Spacer(modifier = Modifier.width(30.dp))
+                                    CameraPhotoTaker { uri ->
+                                        if (uri != null) {
+                                            imageUri = uri
+                                            onImageUriReceived(uri)
+                                        }
+                                        isSheetOpen = false
                                     }
-                                    isSheetOpen = false
                                 }
                             }
-                        }
-                    )
-                },
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
+                        )
+                    },
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
 
 
-            )
+                )
+            }
         }
     }
-    }
 }
-
 
 
 @Composable
 fun CameraPhotoTaker(onPhotoTaken: (Uri?) -> Unit) {
     val context = LocalContext.current
     val file = remember { context.createImageFile() }
-    val uri = remember { FileProvider.getUriForFile(context, "${context.packageName}.provider", file) }
+    val uri =
+        remember { FileProvider.getUriForFile(context, "${context.packageName}.provider", file) }
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) {
-            onPhotoTaken(uri)
-        } else {
-            Toast.makeText(context, "Failed to capture image", Toast.LENGTH_SHORT).show()
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success) {
+                onPhotoTaken(uri)
+            } else {
+                Toast.makeText(context, "Failed to capture image", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
 
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        if (it) {
-            Toast.makeText(context, "Permission granted!", Toast.LENGTH_SHORT).show()
-            cameraLauncher.launch(uri)
-        } else {
-            Toast.makeText(context, "Permission denied!", Toast.LENGTH_SHORT).show()
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            if (it) {
+                Toast.makeText(context, "Permission granted!", Toast.LENGTH_SHORT).show()
+                cameraLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "Permission denied!", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
 
     ImageTaker(
         cameraLauncher = cameraLauncher,
@@ -652,7 +622,8 @@ fun ImageTaker(
     Column {
         Button(
             onClick = {
-                val permissionCheckResult = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                val permissionCheckResult =
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
                 if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
                     cameraLauncher.launch(uri)
                 } else {
@@ -662,7 +633,11 @@ fun ImageTaker(
             shape = RoundedCornerShape(10.dp), // This makes the button square
             colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)
         ) {
-            Image(painterResource(R.drawable.baseline_camera_alt_24), "gallery", modifier = Modifier.size(100.dp) )
+            Image(
+                painterResource(R.drawable.baseline_camera_alt_24),
+                "gallery",
+                modifier = Modifier.size(100.dp)
+            )
         }
     }
 }

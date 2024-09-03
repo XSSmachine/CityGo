@@ -4,8 +4,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.media.CamcorderProfile.getAll
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,11 +56,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.DeviceFontFamilyName
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,12 +85,11 @@ import com.example.userrequest.read.UserRequestItem
 import com.example.userrequest.read.UserRequestListResponseModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import com.hfad.model.Address
 import com.hfad.model.Loading
 import com.hfad.model.Triumph
-import com.hfad.model.ViewState
-import kotlinx.coroutines.launch
-import java.lang.Boolean
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 
 private lateinit var context: Context
@@ -92,140 +101,129 @@ private lateinit var viewModel: ReadAllUserRequestsViewModel
 @Composable
 fun ReadAllUserRequestScreen(
     navController: NavController,
-    onUserRequestClick: (String,String) -> Unit,
-    ViewModel: ReadAllUserRequestsViewModel = hiltViewModel(),
+    onUserRequestClick: (String, String) -> Unit,
+    viewModel: ReadAllUserRequestsViewModel = hiltViewModel(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-
-    context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-    val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
+    val context = LocalContext.current
     val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
-    viewModel = ViewModel
-
-    activity = ((LocalContext.current as? Activity)!!)
-
-    val noDataState = remember{
-        mutableStateOf(false)
-    }
+    var refreshing by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
+    var hasInternetConnection by remember { mutableStateOf(true) }
     val role = remember { mutableStateOf("") }
 
-
-    var refreshing by remember { mutableStateOf(false) }
-    LaunchedEffect(refreshing) {
-        if (refreshing) {
-            viewModel.getAll()
-            role.value = viewModel.getUserRole()
-    }}
-
-    val userRequests = remember { mutableStateListOf(
-        UserRequestListResponseModel(
-            uuid = "",
-            userId="",
-            photo="".toUri(),
-            description="",
-            address1 = Address("123 Main St", null, null, false, 0, "", ""),
-            address2 = Address("123 Main St", null, null, false, 0, "", ""),
-            timeTable="",
-            category="",
-            extraWorker=false,
-            price=0,
-            sid = ""
-        )) }
-
-
+    val userRequests = remember { mutableStateListOf<UserRequestListResponseModel>() }
 
     LaunchedEffect(Unit) {
-        // Run on first screen compose
-        viewModel.getAll()
-        role.value = viewModel.getUserRole()
-        viewModel._requestViewState.observe(lifecycleOwner){ value ->
-            when(value){
-                is Loading ->{
-                    //Loading case
-                }
-                is Triumph -> {
-                    when(value.data){
-                        is List<UserRequestListResponseModel> -> {
-                            userRequests.clear()
-                            userRequests.addAll(value.data)
-                        }
-
-
-                    }
-                }
-                is Error -> {
-                        noDataState.value=true
-
-                }
-                else -> {}
-            }
+        hasInternetConnection = checkInternetConnection(context)
+        if (hasInternetConnection) {
+            viewModel.getAll()
+            role.value = viewModel.getUserRole()
         }
     }
 
+    LaunchedEffect(refreshing) {
+        if (refreshing) {
+            hasInternetConnection = checkInternetConnection(context)
+            if (hasInternetConnection) {
+                viewModel.getAll()
+                role.value = viewModel.getUserRole()
+            }
+            refreshing = false
+        }
+    }
+
+    viewModel._requestViewState.observe(lifecycleOwner) { value ->
+        when (value) {
+            is Loading -> {
+                isLoading = true
+            }
+            is Triumph -> {
+                isLoading = false
+                when (val data = value.data) {
+                    is List<*> -> {
+                        userRequests.clear()
+                        userRequests.addAll(data.filterIsInstance<UserRequestListResponseModel>())
+                    }
+                }
+            }
+            is Error -> {
+                isLoading = false
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(text = "Assignements")
-                },
-
-                )
-        }
-    ) {
-
-//        Box(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .padding(16.dp),
-//            contentAlignment = Alignment.Center
-//        ) {
-
-            SwipeRefresh(
-                state = rememberSwipeRefreshState(isRefreshing = refreshing),
-                onRefresh = { refreshing = true },
+                title = { Text(text = stringResource(id = R.string.assignements)) }
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) }
+    ) { paddingValues ->
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing = refreshing),
+            onRefresh = { refreshing = true },
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                if (userRequests.size==1){
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(64.dp).padding(top=50.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }else
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-
-                    itemsIndexed(userRequests) { index, item ->
-
-                        UserRequestItem(
-                            viewModel,
-                            index = index,
-                            userRequest = item,
-                            onUserRequestClicked = onUserRequestClick
+                when {
+                    !hasInternetConnection -> {
+                        Text(
+                            "No internet connection. Please check your network and try again.",
+                            modifier = Modifier.align(Alignment.Center)
                         )
-
                     }
-
-            }}
-
-
-
+                    isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .width(64.dp)
+                                .align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.secondary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                    }
+                    userRequests.isEmpty() -> {
+                        Text(
+                            "No assignments available.",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            itemsIndexed(userRequests) { index, item ->
+                                UserRequestItem(
+                                    viewModel,
+                                    index = index,
+                                    userRequest = item,
+                                    onUserRequestClicked = onUserRequestClick
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
-
     }
+}
 
-//}
+// Function to check internet connection
+fun checkInternetConnection(context: Context): kotlin.Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork
+    val capabilities = connectivityManager.getNetworkCapabilities(network)
+    return capabilities != null && (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+}
+
+
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -234,8 +232,23 @@ fun UserRequestItem(
     viewModel: ReadAllUserRequestsViewModel,
     index: Int,
     userRequest: UserRequestListResponseModel,
-    onUserRequestClicked: (String,String) -> Unit
+    onUserRequestClicked: (String, String) -> Unit
 ) {
+
+    fun isToday(dateString: String): Boolean {
+        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val date = formatter.parse(dateString)
+        val today = Calendar.getInstance()
+        val requestDate = Calendar.getInstance()
+        requestDate.time = date ?: return false
+
+        return today.get(Calendar.YEAR) == requestDate.get(Calendar.YEAR) &&
+                today.get(Calendar.DAY_OF_YEAR) == requestDate.get(Calendar.DAY_OF_YEAR)
+    }
+
+    // Check if the request date is today
+    val isRequestToday = isToday(userRequest.timeTable.substring(9))
+
     val isEvenIndex = index % 2 == 0
     val shape = when {
         isEvenIndex -> {
@@ -254,27 +267,31 @@ fun UserRequestItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 50.dp),
+            .padding(vertical = 8.dp, horizontal = 16.dp),
         shape = shape,
-        onClick = { onUserRequestClicked(userRequest.userId,userRequest.sid) }
+        onClick = { onUserRequestClicked(userRequest.userId, userRequest.sid) }
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Picture
+            // Picture with "New" label
             Box(
                 modifier = Modifier
-                    .size(150.dp)
-                    .padding(8.dp)
+                    .width(100.dp)
+                    .height(100.dp)
+                    .padding(2.dp)
             ) {
                 if (userRequest.photo != null) {
                     Image(
                         painter = rememberAsyncImagePainter(userRequest.photo),
                         contentDescription = "Image",
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape = RoundedCornerShape(8.dp))
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(percent = 10))
                     )
                 } else {
                     Image(
@@ -283,6 +300,21 @@ fun UserRequestItem(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                if (isRequestToday) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(Color.Yellow, shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.new_text),
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+
             }
 
             // Texts
@@ -291,22 +323,47 @@ fun UserRequestItem(
                     .padding(8.dp)
                     .weight(1f)
             ) {
-                // Timetable
+                // Date and Time
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
-                        contentDescription = "Timetable",
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = "Date",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.Green
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = userRequest.timeTable.substringAfter(","),
+                        text = userRequest.timeTable.substring(9),
                         fontWeight = FontWeight.Normal,
                         maxLines = 1,
                         style = MaterialTheme.typography.bodySmall,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        color = Color.Black
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Time
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_access_time_filled_24),
+                        contentDescription = "Time",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.Cyan
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = userRequest.timeTable.substring(0, 7),
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 15.sp,
+                        color = Color.Black
                     )
                 }
 
@@ -316,56 +373,50 @@ fun UserRequestItem(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Address",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+
                     Text(
-                        text = "${userRequest.address1.addressName} | ${userRequest.address2.addressName}",
-                        fontWeight = FontWeight.Medium,
+                        text = userRequest.address1.addressName,
+                        modifier = Modifier.padding(vertical = 2.dp),
+                        fontFamily = FontFamily(
+                            Font(
+                                DeviceFontFamilyName("sans-serif"),
+                                weight = FontWeight.Light
+                            )
+                        ),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+
+                    Text(
+                        text = userRequest.description,
                         maxLines = 1,
+                        fontWeight = FontWeight.W400,
+                        color = Color.Black,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
                         fontSize = 10.sp
                     )
-                }
 
-                Spacer(modifier = Modifier.height(4.dp))
 
-                // Price
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Price",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Ukupna cijena ${userRequest.price}",
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Button
-                AnimatedVisibility(visible = viewModel.getUserRole()=="Cygo") {
-                    Button(
-                        onClick = { /* Navigate to create Offer */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Javi dostupnost")
-                    }
-                }
-
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFFFFEB3B), shape = RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = userRequest.price.toString() + " €",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
+
 

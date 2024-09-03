@@ -33,32 +33,12 @@ class UserLoginViewModel @Inject constructor(
     private val checkIfUserProfileExistUseCase: CheckIfUserProfileExistUseCase,
     private val setUserIdUseCase: SetUserIdUseCase,
     private val getUserIdUseCase: GetUserIdUseCase,
-    private val dataStoreRepository: DataStoreRepository
 ):ViewModel(){
-
-    val user = Firebase.auth.currentUser
-
     private val _errorMessage = mutableStateOf("")
     private val _phoneNumber = mutableStateOf("")
     private val _name = mutableStateOf("")
     private val _surname = mutableStateOf("")
     private val _email = mutableStateOf("")
-
-
-    fun cacheName(
-        userId: String
-    ) = flow {
-        setUserId(userId)
-        emit(MainEvent.NamedCachedSuccess)
-    }
-
-    fun getCachedName() = flow {
-        val result = getUserId()
-        val userId = result.getOrNull().orEmpty()
-        Log.d("TESTIN",userId)
-        emit(MainEvent.CachedNameFetchSuccess(userId))
-    }
-
 
     val phoneNumber: String
         get() = _phoneNumber.value
@@ -97,7 +77,6 @@ class UserLoginViewModel @Inject constructor(
 
     suspend fun createUser() {
         try {
-            Log.d("VIEWMODEL2",getIdValue())
             createUserProfileUseCase.execute(
                 UserProfileRequestModel(
                 id =getIdValue(),
@@ -118,7 +97,6 @@ class UserLoginViewModel @Inject constructor(
     }
 
     suspend fun setUserId(userId:String){
-        Log.d("VIEWMODEL-login-saveId",userId)
         setUserIdUseCase.execute(userId)
     }
 
@@ -133,7 +111,6 @@ class UserLoginViewModel @Inject constructor(
         runBlocking {
             r = getUserId().getOrNull()?:"none"
         }
-        Log.d("VIEWMODEL-login",r)
         return r
     }
 

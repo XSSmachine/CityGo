@@ -103,7 +103,7 @@ class RoomUserRequestDataSource constructor(private val dao: UserRequestDao) :
      */
     override suspend fun update(userId: String, uuid: String, userRequest: UserRequestRequestModel): RepoResult<Unit> {
         return try {
-            dao.updateUserRequest(uuid,userId, userRequest.photo,userRequest.description,userRequest.address1.addressName,
+            dao.updateUserRequest(uuid,userId, userRequest.photo!!,userRequest.description,userRequest.address1.addressName,
                 userRequest.address1.latitude,userRequest.address1.longitude,userRequest.address1.liftStairs,
                 userRequest.address1.floor,userRequest.address1.doorCode,userRequest.address1.phoneNumber,
                 userRequest.address2.addressName,userRequest.address2.latitude,userRequest.address2.longitude,

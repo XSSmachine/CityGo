@@ -48,78 +48,81 @@ class UpdateUserRequestViewModel @Inject constructor(
         state = state.copy(extraWorker = isExtraWorker)
     }
 
-
-    fun setUserRequestPicture(uri: Uri){
-        state=state.copy(photo=uri)
-    }
-    fun onDescriptionChange(desc: String){
-        state=state.copy(description = desc)
+    fun setUserRequestPicture(uri: Uri) {
+        state = state.copy(photo = uri)
     }
 
-    fun onPriceChange(price: Int?){
-        state=state.copy(price = price!!)
+    fun onDescriptionChange(desc: String) {
+        state = state.copy(description = desc)
+    }
+
+    fun onPriceChange(price: Int?) {
+        state = state.copy(price = price!!)
     }
 
 
     fun setAddressName1(name: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address1 = state.address1.copy(addressName = name))
     }
+
     fun setAddressName2(name: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address2 = state.address2.copy(addressName = name))
     }
 
     fun setFloors1(floor: Int) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address1 = state.address1.copy(floor = floor))
     }
+
     fun setFloors2(floor: Int) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address2 = state.address2.copy(floor = floor))
     }
 
     fun setDoorCode1(code: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address1 = state.address1.copy(doorCode = code))
     }
+
     fun setDoorCode2(code: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address2 = state.address2.copy(doorCode = code))
     }
 
     fun setPhoneNumber1(num: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address1 = state.address1.copy(phoneNumber = num))
     }
+
     fun setPhoneNumber2(num: String) {
-        // Update only the address1 field by copying the existing state and replacing the address1 field with the new name
         state = state.copy(address2 = state.address2.copy(phoneNumber = num))
     }
 
-
-
-
-
-
     // Function to fetch user request details
-    suspend fun getUserRequest(requestUIID:String,userId:String){
-        viewModelScope.launch(coroutineContext)  {
-            getUserRequestUseCase.execute(userId,requestUIID)
+    suspend fun getUserRequest(requestUIID: String, userId: String) {
+        viewModelScope.launch(coroutineContext) {
+            getUserRequestUseCase.execute(userId, requestUIID)
                 .onSuccess { _viewState.postValue(Triumph(it)) }
-                .onFailure { exception -> _viewState.postValue(Error(exception,"getting user request")) }
+                .onFailure { exception ->
+                    _viewState.postValue(
+                        Error(
+                            exception,
+                            "getting user request"
+                        )
+                    )
+                }
         }
     }
 
     // Function to update user request details
-    suspend fun updateUserRequest(requestUIID:String,userId: String,data:UserRequestResponseModel) {
+    suspend fun updateUserRequest(
+        requestUIID: String,
+        userId: String,
+        data: UserRequestResponseModel
+    ) {
         val date = getCurrentDateTime()
         val dateInString = date.toString("dd/MM/yyyy HH:mm:ss")
         _viewState?.let { userRequest ->
-            updateUserRequestUseCase.execute(userId, requestUIID,
+            updateUserRequestUseCase.execute(
+                userId, requestUIID,
                 UserRequestRequestModel(
-                    uuid=requestUIID,
-                    userId=userId,
+                    uuid = requestUIID,
+                    userId = userId,
                     photo = data.photo.toString(),
                     description = data.description,
                     address1 = data.address1,
@@ -127,7 +130,7 @@ class UpdateUserRequestViewModel @Inject constructor(
                     timeTable = data.timeTable,
                     category = data.category,
                     extraWorker = data.extraWorker,
-                     date = dateInString,
+                    date = dateInString,
                     price = data.price,
                     sid = null,
                     sync = null,
@@ -141,25 +144,24 @@ class UpdateUserRequestViewModel @Inject constructor(
         return getUserIdUseCase.execute()
     }
 
-    fun getIdValue() : String{
+    fun getIdValue(): String {
         var r = ""
         runBlocking {
-            r = getUserId().getOrNull()?:"none"
+            r = getUserId().getOrNull() ?: "none"
         }
-        Log.d("VIEWMODEL-login",r)
+        Log.d("VIEWMODEL-login", r)
         return r
     }
 }
 
 
-
 data class UserRequestData(
-    val photo: Uri ="".toUri(),
-    val description: String="",
-    val address1: Address = Address("",null,null,true,0,"",""),
-    val address2: Address = Address("",null,null,true,0,"",""),
-    val timeTable: String="",
-    val category: String="",
-    val extraWorker: Boolean=false,
-    val price: Int=0
+    val photo: Uri = "".toUri(),
+    val description: String = "",
+    val address1: Address = Address("", null, null, true, 0, "", ""),
+    val address2: Address = Address("", null, null, true, 0, "", ""),
+    val timeTable: String = "",
+    val category: String = "",
+    val extraWorker: Boolean = false,
+    val price: Int = 0
 )

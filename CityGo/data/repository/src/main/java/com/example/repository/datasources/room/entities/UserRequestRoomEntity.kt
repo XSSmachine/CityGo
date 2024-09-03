@@ -19,7 +19,7 @@ import java.util.UUID
 @Entity(
     tableName = "user_requests",
     primaryKeys = ["user_id", "uuid"],
-    indices = [Index(value = ["uuid"], unique = true)]
+    indices = [Index(value = ["sid"], unique = true)]
 )
 data class UserRequestRoomEntity(
 
@@ -73,7 +73,7 @@ fun UserRequestRequestModel.toUserRequestRoomEntity(): UserRequestRoomEntity{
     return UserRequestRoomEntity(
         uuid = (if (uuid.isNullOrEmpty()) UUID.randomUUID().toString() else uuid)!!,
         userId=userId,
-        photo=photo,
+        photo=photo!!,
         description=description,
         address1 = address1,
         address2 = address2,

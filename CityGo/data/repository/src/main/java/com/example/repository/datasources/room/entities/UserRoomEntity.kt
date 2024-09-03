@@ -21,7 +21,6 @@ data class UserProfileRoomEntity(
     val phoneNumber: String,
     val profilePicture: String?,
     val stars: Double,
-
     val sid: String? ,
     val sync:Long?
 )

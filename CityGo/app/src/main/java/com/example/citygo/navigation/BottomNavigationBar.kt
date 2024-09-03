@@ -1,5 +1,6 @@
 package com.example.citygo.navigation
 
+import android.content.Context
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +47,7 @@ fun BottomNavigationBar(navHostController: NavHostController) {
         NavigationItem.MyRequestList,
         NavigationItem.Profile,
     )
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -64,7 +67,6 @@ fun BottomNavigationBar(navHostController: NavHostController) {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             bottomScreens.map {
                 val isSelected = navHostController
                     .currentBackStackEntryAsState().value?.destination?.route == it.route
@@ -81,41 +83,22 @@ fun BottomNavigationBar(navHostController: NavHostController) {
                                     navHostController.graph.findStartDestination().id, false
                                 )
                             }
-
                             navHostController.navigate(
                                 it.route
                             ) {
-                                restoreState = true
+                                navHostController.graph.startDestinationRoute?.let { route ->
+                                    popUpTo(route) {
+                                        saveState = true
+                                    }
+                                }
                                 launchSingleTop = true
-                                popUpTo(navHostController.graph.findStartDestination().id) { saveState = true }
+                                restoreState = true
+
                             }
                         },
+                    context = context
                 )
-                // Text(text = it.title)
 
-                /* BottomNavigationItem(
-                     selected = isSelected,
-                    onlick = {
-                         navHostController.navigate(
-                             it.route
-                         ) {
-                             restoreState = true
-                             launchSingleTop = true
-
-                             val destination = navHostController.graph.findStartDestination().id
-                             popUpTo(destination) { saveState = true }
-                         }
-                     },
-                     icon = {
-                         Icon(painter = painterResource(id = it.icon), contentDescription = "bottom Bar Icon", modifier = Modifier.size(24.dp))
-                     },
-                     label = {
-                         Text(text = it.title,)
-                     },
-
-                     unselectedContentColor = Color.Gray,
-                     selectedContentColor = MaterialTheme.colors.primary
-                 )*/
             }
         }
     }
@@ -127,6 +110,7 @@ private fun CustomBottomNavItem(
     modifier: Modifier = Modifier,
     screen: NavigationItem,
     isSelected: Boolean,
+    context:Context
 ) {
     val animatedIconSize by animateDpAsState(
         targetValue = if (isSelected) 50.dp else 25.dp,
@@ -157,10 +141,10 @@ private fun CustomBottomNavItem(
 
             if (isSelected) {
                 Text(
-                    text = screen.title,
+                    text = screen.getTitle(context),
                     modifier = Modifier.padding(start = 8.dp, end = 10.dp),
                     maxLines = 1,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color.DarkGray,
                     fontSize = 10.sp
                 )
             }

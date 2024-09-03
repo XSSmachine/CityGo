@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">CityGo</string>
+    <string name="app_name" translatable="false">CityGo</string>
+    <string name="navbar_home">Home</string>
+    <string name="navbar_assign">Assignements</string>
+    <string name="navbar_activity">My activities</string>
+    <string name="navbar_profile">Profile</string>
 </resources>

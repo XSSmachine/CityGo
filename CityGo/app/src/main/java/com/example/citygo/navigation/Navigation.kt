@@ -45,10 +45,6 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
 
 ) {
 
-
-
-
-//if(isLoginRequired) "login" else "home"
     NavHost(
         navController = navController,
         startDestination = if(isLoginRequired) "login" else "home"
@@ -90,7 +86,7 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
             CreateDetailsUserRequestScreen(
                 navController = navController,
                 createContactViewModel,
-                navigateUp = {navController.navigateUp()},
+                navigateUp = {navController.popBackStack()},
             )
         }
 
@@ -108,17 +104,17 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
             ReadUserRequestScreen(
                 navController = navController,
                 onUserRequestClick = { requestId, userId ->
-                    navController.navigateToSingleTop(
+                    navController.navigate(
                         route = "${"detail"}/$requestId/$userId"
                     )
                 },
                 onUserRequestButtonClick = { requestId ->
-                    navController.navigateToSingleTop(
+                    navController.navigate(
                         route = "${"allOffers"}/$requestId"
                     )
                 },
                 onCygoOfferClick= {userId,sid ->
-                    navController.navigateToSingleTop(
+                    navController.navigate(
                         route = "${"alldetail"}/$userId/$sid "
                     )
                 },
@@ -164,7 +160,7 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
                 userId =userId,
                 navigateUp = {navController.navigateUp()},
                 onUserRequestUpdate = { requestId, userId ->
-                    navController.navigateToSingleTop(
+                    navController.navigate(
                         route = "${"update"}/$requestId/$userId"
                     )
                 },
@@ -241,7 +237,7 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
             ReadAllUserRequestScreen(
                 navController = navController,
                 onUserRequestClick = {userId,sid ->
-                    navController.navigateToSingleTop(
+                    navController.navigate(
                         route = "${"alldetail"}/$userId/$sid "
                     )
                 },
@@ -259,9 +255,8 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
             val sid = backStackEntry.arguments?.getString("sid") ?: ""
             val readUserRequestViewModel:ReadUserRequestViewModel = hiltViewModel()
             ReadAllOffersScreen(
-                navController,
                 sid = sid,
-                navigateUp = {navController.popBackStack()}
+                navigateUp = {navController.navigateUp()}
 
 
             )
@@ -274,10 +269,10 @@ import com.example.userrequest.update.UpdateUserRequestViewModel
     }
 }
 
-fun NavHostController.navigateToSingleTop(route:String){
-    navigate(route){
-        popUpTo(graph.findStartDestination().id){saveState=true}
-        launchSingleTop = true
-        restoreState = true
-    }
-}
+//fun NavHostController.navigateToSingleTop(route:String){
+//    navigate(route){
+//        popUpTo(graph.findStartDestination().id){saveState=true}
+//        launchSingleTop = true
+//        restoreState = true
+//    }
+//}

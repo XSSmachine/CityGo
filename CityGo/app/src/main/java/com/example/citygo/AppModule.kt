@@ -96,6 +96,7 @@ import com.example.repository.interfaces.OfferDataSource
 import com.example.repository.interfaces.ServiceProvidersDataSource
 import com.example.repository.interfaces.UsersDataSource
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthSettings
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

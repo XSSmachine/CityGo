@@ -19,7 +19,9 @@ class GetAllOffersUseCaseImpl constructor(private val offerRepository: OfferRepo
             offerRepository.getAllOffers(userRequestUIID)
             .onSuccess { Log.d("userOffer-GetAll1",it.toString())
                 return Success(it) }
-            .onFailure { Log.d("userOffer-GetAll2",it.toString())
+            .onFailure {
+                Log.d("userOffer-GetAll22",userRequestUIID.toString())
+                Log.d("userOffer-GetAll2",it.toString())
                 return Failure(it) }
         }catch (e: Exception) {
             e.printStackTrace()

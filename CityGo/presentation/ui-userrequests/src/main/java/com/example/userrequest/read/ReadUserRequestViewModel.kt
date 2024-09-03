@@ -3,10 +3,7 @@ package com.example.userrequest.read
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -21,16 +18,14 @@ import com.example.domain.interfaces.serviceproviderprofile_usecases.GetServiceP
 import com.example.domain.interfaces.userprofile_usecases.GetUserIdUseCase
 import com.example.domain.interfaces.userprofile_usecases.GetUserRoleUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetAllCurrentUserRequestsUseCase
-import com.example.domain.interfaces.userrequest_usecases.GetAllUserRequestsUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetRemoteUserRequestUseCase
 import com.example.domain.interfaces.userrequest_usecases.GetUserRequestByIdUseCase
-import com.example.userrequest.R
 import com.hfad.model.Address
 import com.hfad.model.BasicError
 import com.hfad.model.Error
 import com.hfad.model.Failure
-import com.hfad.model.Loading
 import com.hfad.model.OfferResponseModel
+import com.hfad.model.Progress
 import com.hfad.model.ServiceProviderProfileResponseModel
 import com.hfad.model.Success
 import com.hfad.model.Triumph
@@ -39,8 +34,7 @@ import com.hfad.model.ViewState
 import com.hfad.model.onFailure
 import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -58,58 +52,66 @@ data class UserRequestListResponseModel(
     val category: String,
     val extraWorker: Boolean,
     val price: Int,
-    val sid:String
+    val offerPrice: Int,
+    val status: String,
+    val sid: String
 )
 
-fun UserRequestResponseModel.toContactListResponseModel()
-        :UserRequestListResponseModel {
+fun UserRequestResponseModel.toContactListResponseModel(status: String, offerPrice: Int)
+        : UserRequestListResponseModel {
     return UserRequestListResponseModel(
         uuid = uuid!!,
-        userId=userId,
-        photo=photo,
-        description=description,
+        userId = userId,
+        photo = photo,
+        description = description,
         address1 = address1,
         address2 = address2,
-        timeTable=timeTable,
-        category=category,
-        extraWorker=extraWorker,
-        price=price,
-        sid=sid ?: ""
+        timeTable = timeTable,
+        category = category,
+        extraWorker = extraWorker,
+        price = price,
+        offerPrice = offerPrice,
+        status = status,
+        sid = sid ?: ""
 
-        )
+    )
 }
 
 
-
 data class OfferListResponseModel(
-    val id: Int,
+    val id: String,
     val userRequestUUID: String,
-    val serviceProviderId:String,
+    val serviceProviderId: String,
     val timeTable: String?,
     val status: String,
     val price: Int?,
     val serviceProviderImage: String,
-    val serviceProviderName:String,
+    val serviceVehicleImage: String,
+    val serviceProviderName: String,
     val serviceProviderStars: Double,
+    val serviceProviderPhone: String?
 
 
 )
 
 fun OfferResponseModel.toOfferListResponseModel(serviceProviderProfileState: ServiceProviderProfileState): OfferListResponseModel {
     return OfferListResponseModel(
-        id = id,
-        userRequestUUID =userRequestUUID,
+        id = sid!!,
+        userRequestUUID = userRequestUUID,
         serviceProviderId = serviceProviderId,
-        price =price,
+        price = price,
         timeTable = timeTable,
         status = status,
         serviceProviderName = serviceProviderProfileState.name,
         serviceProviderImage = serviceProviderProfileState.profilePicture,
-        serviceProviderStars = serviceProviderProfileState.stars
+        serviceVehicleImage = serviceProviderProfileState.vehiclePicture,
+        serviceProviderStars = serviceProviderProfileState.stars,
+        serviceProviderPhone = serviceProviderProfileState.phoneNumber
 
 
-        )
+    )
 }
+
 @HiltViewModel
 class ReadUserRequestViewModel @Inject constructor(
     private val getAllContactsUseCase: GetAllCurrentUserRequestsUseCase,
@@ -162,12 +164,7 @@ class ReadUserRequestViewModel @Inject constructor(
     val providerState: LiveData<ViewState<ServiceProviderProfileState>>
         get() = _providerState
 
-    val errorMessage: String
-        get() = _errorMessage.value
 
-    init {
-//        _offers.postValue(Loading("Loading", "Loading", "Loading", R.drawable.baseline_rocket_launch_24, R.drawable.img))
-    }
 
 
     suspend fun checkOffersForRequest(userRequestUUID: String): Boolean {
@@ -187,16 +184,18 @@ class ReadUserRequestViewModel @Inject constructor(
         }
     }
 
-    suspend fun getSingleOffer(sid: String):OfferResponseModel?{
+    suspend fun getSingleOffer(sid: String): OfferResponseModel? {
         viewModelScope.launch(coroutineContext) {
-            Log.d("userOffer-getByUserRequest",sid)
-            getOfferByUserRequestUseCase.execute("\""+sid+" \"")
+            Log.d("userOffer-getByUserRequest", sid)
+            getOfferByUserRequestUseCase.execute("\"" + sid + " \"")
                 .onSuccess {
-                    Log.d("userOffer-Sucess",it.toString())
-                    _singleOffer.postValue(Triumph(it)) }
+                    Log.d("userOffer-Sucess", it.toString())
+                    _singleOffer.postValue(Triumph(it))
+                }
                 .onFailure {
-                    Log.d("userOffer-Sucess",it.throwable.toString())
-                    _singleOffer.postValue(Error(BasicError(it.throwable), "getting all sp offers")) }
+                    Log.d("userOffer-Sucess", it.throwable.toString())
+                    _singleOffer.postValue(Error(BasicError(it.throwable), "getting all sp offers"))
+                }
         }
         return null
     }
@@ -212,9 +211,9 @@ class ReadUserRequestViewModel @Inject constructor(
         return status
     }
 
-    suspend fun deleteOffer(sid: String){
+    suspend fun deleteOffer(sid: String) {
         viewModelScope.launch(coroutineContext) {
-            Log.d("DELETE_OFFER",sid)
+
             deleteOfferUseCase.execute(sid)
         }
     }
@@ -228,57 +227,64 @@ class ReadUserRequestViewModel @Inject constructor(
         runBlocking {
             r = getRole().getOrNull() ?: "none"
         }
-        Log.d("VIEWMODEL-role", r)
         return r
     }
 
-    fun updateOfferStatus(sid: String, status: String) {
+    suspend fun updateOfferStatus(sid: String, status: String) {
         runBlocking { updateOfferStatusUseCase.execute(sid, status) }
     }
 
 
-    suspend fun getUserRequestById(userRequestUUID: String): UserRequestResponseModel {
-        var userRequest = UserRequestResponseModel(
-            uuid = "123",
-            userId = "user123",
-            photo = Uri.parse("content://com.example.app/photo/123"),
-            description = "Fix leaky faucet",
-            address1 = Address("123 Main St", null, null, false, 0, "", ""),
-            address2 = Address("456 Elm St", null, null, false, 0, "", ""),
-            timeTable = "9:00 AM - 5:00 PM",
-            date = "2024-05-01",
-            category = "Plumbing",
-            extraWorker = false,
-            price = 100,
-            sid = "",
-            sync = null,
-            offers = null
-        )
-        viewModelScope.launch(coroutineContext) {
-            getUserRequestByIdUseCase.execute(userRequestUUID)
-                .onSuccess { userRequest = it }
+    suspend fun getUserRequestPrice(userRequestUUID: String): Int {
+        return withContext(Dispatchers.IO) {
+            try {
+                when (val result = getRemoteUserRequestUseCase.execute(userRequestUUID.trim())) {
+                    is Success -> {
+                        val userRequest = result.data
+                        userRequest.price
+                    }
+
+                    is Failure -> {
+                        Log.e("getUserRequestPrice", "Error fetching user request")
+                        -1 // Or any other value to indicate an error
+                    }
+
+                    is Progress -> {
+                        Log.d("getUserRequestPrice", "Request in progress")
+                        -2 // Or any other value to indicate a request in progress
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("getUserRequestPrice", "Exception in getUserRequestPrice", e)
+                -1 // Or any other value to indicate an error
+            }
         }
-        return userRequest
     }
+
 
     suspend fun getServiceProviderOffers() {
         viewModelScope.launch(coroutineContext) {
             getAllMyOffersUseCase.execute(getIdValue())
                 .onSuccess { offers ->
-                    Log.d("userOffer2",offers.toString())
+                    Log.d("userOffer2", offers.toString())
                     _sp_offers.postValue(Triumph(offers))
                     val userRequests = mutableListOf<UserRequestListResponseModel>()
                     offers.forEach { offer ->
                         getRemoteUserRequestUseCase.execute(offer.userRequestUUID.trim())
                             .onSuccess { userRequest ->
                                 userRequest?.let {
-                                    Log.d("userOffer",it.toContactListResponseModel().toString())
+                                    Log.d(
+                                        "userOffer",
+                                        it.toContactListResponseModel(offer.status, offer.price!!)
+                                            .toString()
+                                    )
                                     userRequests.add(
-                                        it.toContactListResponseModel())
+                                        it.toContactListResponseModel(offer.status, offer.price!!)
+                                    )
                                 }
                             }
                             .onFailure { exception ->
-                                Log.d("userOffer",exception.toString())
+                                Log.d("userOffer", exception.toString())
                                 _sp_userRequests.postValue(
                                     Error(
                                         exception,
@@ -290,7 +296,7 @@ class ReadUserRequestViewModel @Inject constructor(
                     _sp_userRequests.postValue(Triumph(userRequests))
                 }
                 .onFailure { exception ->
-                    Log.d("userOffer1",exception.toString())
+                    Log.d("userOffer1", exception.toString())
                     _sp_userRequests.postValue(Error(exception, "getting all sp offers"))
                 }
         }
@@ -313,31 +319,42 @@ class ReadUserRequestViewModel @Inject constructor(
     suspend fun getMyUserRequest() {
         viewModelScope.launch(coroutineContext) {
             getAllCurrentUserRequestsUseCase.execute(getIdValue())
-                .onSuccess { _userRequests.postValue(Triumph(it.map { it.toContactListResponseModel() })) }
+                .onSuccess {
+                    _userRequests.postValue(Triumph(it.map {
+                        it.toContactListResponseModel(
+                            "",
+                            0
+                        )
+                    }))
+                }
                 .onFailure { _userRequests.postValue(Error(it, "getting all my user requests")) }
         }
     }
 
     suspend fun getOffers(sid: String) {
         val offerListResponseModels = mutableListOf<OfferListResponseModel>()
-        viewModelScope.launch(coroutineContext)  {
+        viewModelScope.launch(coroutineContext) {
             getAllOffersUseCase.execute(sid)
                 .onSuccess { offers ->
                     Log.d("WIN", offers.toString())
 
                     offers.forEach { offer ->
 
-                        when (val result = getServiceProviderStatusUseCase.execute(offer.serviceProviderId)) {
+                        when (val result =
+                            getServiceProviderStatusUseCase.execute(offer.serviceProviderId)) {
                             is Success -> {
                                 Log.d("WIN1", result.toString())
-                                val offerListResponseModel = offer.toOfferListResponseModel(result.data.toServiceProviderProfileState())
+                                val offerListResponseModel =
+                                    offer.toOfferListResponseModel(result.data.toServiceProviderProfileState())
                                 offerListResponseModels.add(offerListResponseModel)
                                 Log.d("WIN3", offerListResponseModels.toString())
 
                             }
+
                             is Failure -> {
-                                _offers.postValue(Error(result.error,"getting all my offers"))
+                                _offers.postValue(Error(result.error, "getting all my offers"))
                             }
+
                             else -> {}
                         }
                     }
@@ -346,7 +363,31 @@ class ReadUserRequestViewModel @Inject constructor(
                     Log.d("WIN4", _offers.value.toString())
                 }
                 .onFailure { exception ->
-                    _offers.postValue(Error(exception,"getting all my offers"))
+                    _offers.postValue(Error(exception, "getting all my offers"))
+                }
+        }
+    }
+
+    suspend fun denyOtherOffers(sid: String, offerSID: String) {
+        val offerListResponseModels = mutableListOf<OfferListResponseModel>()
+        viewModelScope.launch(coroutineContext) {
+            getAllOffersUseCase.execute(sid)
+                .onSuccess { offers ->
+                    Log.d("WIN", offers.toString())
+
+                    offers.forEach { offer ->
+
+                        if (offer.sid!!.trim() == offerSID.trim()) {
+                            Log.d("WINNN", "update")
+                            updateOfferStatus(offerSID, "Accepted")
+                        } else {
+                            Log.d("WINNN", "delete")
+                            updateOfferStatus(offer.sid!!, "Denied")
+                        }
+                    }
+                }
+                .onFailure { exception ->
+                    _offers.postValue(Error(exception, "getting all my offers"))
                 }
         }
     }
@@ -358,7 +399,8 @@ class ReadUserRequestViewModel @Inject constructor(
             getServiceProviderStatusUseCase.execute(UserId)
                 .onSuccess {
                     Log.d("WIN_LOSS", it.toString())
-                    _providerState.postValue(Triumph(it.toServiceProviderProfileState())) }
+                    _providerState.postValue(Triumph(it.toServiceProviderProfileState()))
+                }
                 .onFailure { exception ->
                     Log.d("WIN_LOSS", exception.toString())
                     _providerState.postValue(Error(exception, "getting sp details"))
@@ -375,21 +417,25 @@ fun ServiceProviderProfileResponseModel.toServiceProviderProfileState()
         : ServiceProviderProfileState {
     return ServiceProviderProfileState(
         id = id,
-        name=name,
-        surname=surname,
-        email=email,
+        name = name,
+        surname = surname,
+        email = email,
         stars = stars,
-        profilePicture=vehiclePicture,
+        profilePicture = profilePicture,
+        vehiclePicture = vehiclePicture,
+        phoneNumber = phoneNumber
 
-        )
+    )
 }
 
 data class ServiceProviderProfileState(
-    val id:String,
-    val name:String,
-    val surname:String,
-    val email:String,
-    val profilePicture:String,
-    val stars:Double
+    val id: String,
+    val name: String,
+    val surname: String,
+    val email: String,
+    val phoneNumber: String,
+    val profilePicture: String,
+    val vehiclePicture: String,
+    val stars: Double
 
-    )
+)

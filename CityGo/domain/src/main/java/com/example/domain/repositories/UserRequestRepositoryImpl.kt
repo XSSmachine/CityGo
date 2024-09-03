@@ -28,13 +28,18 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
 
-class UserRequestRepositoryImpl constructor(private val userRequestDataSource: UserRequestDataSource,private val remoteDataSource: UserRequestRemoteDataSource,private val remoteUserDataSource: RemoteUserDataSource, private val remoteImageDataSource: RemoteImageDataSource) : UserRequestRepository {
+class UserRequestRepositoryImpl constructor(
+    private val userRequestDataSource: UserRequestDataSource,
+    private val remoteDataSource: UserRequestRemoteDataSource,
+    private val remoteUserDataSource: RemoteUserDataSource,
+    private val remoteImageDataSource: RemoteImageDataSource
+) : UserRequestRepository {
     override suspend fun getAllUserRequests(): RepoResult<List<UserRequestResponseModel>> {
         try {
             remoteDataSource.getAll()
                 .onSuccess { return Success(it) }
                 .onFailure { return Failure(it) }
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             Failure(BasicError(Throwable("Get All User Requests Fetch failed")))
         }
@@ -51,27 +56,25 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
                     when (val localResult = userRequestDataSource.getAllForCurrentUser(userId)) {
                         is Success -> {
                             val localList = localResult.data
-                            Log.d("LOCAL LIST", localList.toString())
-
                             val missingEntries = remoteList.filterNot { remoteItem ->
-                                localList.any { localItem -> localItem.sid == remoteItem.sid }
+                                localList.any { localItem -> localItem.sid == remoteItem.sid || localItem.address1 == remoteItem.address1 && localItem.address2 == remoteItem.address2 && localItem.description == remoteItem.description }
                             }
                             if (missingEntries.isNotEmpty()) {
                                 missingEntries.forEach { element ->
                                     userRequestDataSource.create(element.toRequestModel())
                                 }
                             }
-                            Success(remoteList)
+                            Success(localList)
                         }
+
                         is Failure -> Failure(localResult.error)
                         is Progress -> TODO()
                     }
                 }
+
                 is Failure -> {
-                    Log.d("REMOTE LIST", remoteResult.error.throwable.message.toString())
                     userRequestDataSource.getAllForCurrentUser(userId)
                 }
-
                 is Progress -> TODO()
             }
         } catch (e: Exception) {
@@ -81,12 +84,15 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
     }
 
 
-    override suspend fun getUserRequest(userId:String, uuid: String): RepoResult<UserRequestResponseModel> {
+    override suspend fun getUserRequest(
+        userId: String,
+        uuid: String
+    ): RepoResult<UserRequestResponseModel> {
         try {
-            userRequestDataSource.getOne(userId,uuid)
+            userRequestDataSource.getOne(userId, uuid)
                 .onSuccess { return Success(it) }
                 .onFailure { return Failure(it) }
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             Failure(BasicError(Throwable("Get User Request Fetch failed")))
         }
@@ -98,9 +104,10 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
             remoteDataSource.getOne(sid)
                 .onSuccess { return Success(it) }
                 .onFailure {
-                    Log.d("JUSTCHECKIN2",it.toString())
-                    return Failure(it) }
-        }catch (e:Exception){
+                    Log.d("JUSTCHECKIN2", it.toString())
+                    return Failure(it)
+                }
+        } catch (e: Exception) {
             e.printStackTrace()
             Failure(BasicError(Throwable("Get Remote User Request Fetch failed")))
         }
@@ -112,7 +119,7 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
             userRequestDataSource.getOneById(uuid)
                 .onSuccess { return Success(it) }
                 .onFailure { return Failure(it) }
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             Failure(BasicError(Throwable("Get User Request By Id Fetch failed")))
         }
@@ -120,63 +127,74 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
 
     }
 
-    override suspend fun deleteUserRequest(userId:String,uuid: String): RepoResult<Unit> {
-//        return userRequestDataSource.delete(userId,uuid)
-
+    override suspend fun deleteUserRequest(userId: String, uuid: String): RepoResult<Unit> {
         return try {
-            // Update user request in Room
-
-
-            // Get the updated Room entity
             val updatedRoomEntity = userRequestDataSource.getOneById(uuid)
-
-
             updatedRoomEntity
-                .onSuccess { if (it != null && it.sid!= null) {
-                    val sid = it.sid
-                    // Update user request in Firebase using the sid from the updated Room entity
-                    if (sid != null) {
-                        val request = remoteDataSource.getOne(sid)
-                        request.onSuccess { remoteImageDataSource.deleteImage(it.photo.toString()) }
-                        remoteDataSource.delete(sid)
-                        remoteUserDataSource.deleteUserRequests(userId, sid)
+                .onSuccess {
+                    if (it != null && it.sid != null) {
+                        val sid = it.sid
+                        if (sid != null) {
+                            val request = remoteDataSource.getOne(sid)
+                            request.onSuccess { remoteImageDataSource.deleteImage(it.photo.toString()) }
+                            remoteDataSource.delete(sid)
+                            remoteUserDataSource.deleteUserRequests(userId, sid)
+                        }
                     }
-                } }
+                }
             userRequestDataSource.delete(userId, uuid)
-
-
-            // Check if the updated Room entity is not null and has a sid
-            // Return success if both updates are successful
             Success(Unit)
         } catch (e: Exception) {
             // Handle any update failure
             Failure(BasicError(e))
         }
     }
-
-//    override suspend fun updateUserRequest(userId:String,uuid: String, data: UserRequestRequestModel): RepoResult<Unit> {
-//        return userRequestDataSource.update(userId,uuid, data)
-//    }
-    override suspend fun updateUserRequest(userId: String, uuid: String, data: UserRequestRequestModel): RepoResult<Unit> {
+    override suspend fun updateUserRequest(
+        userId: String,
+        uuid: String,
+        data: UserRequestRequestModel
+    ): RepoResult<Unit> {
         return try {
+            // Get the current Room entity
+            val currentRoomEntity = userRequestDataSource.getOneById(uuid)
+            if (currentRoomEntity == null) {
+                return Failure(BasicError(Throwable("User request not found in local database")))
+            }
             // Update user request in Room
             val roomUpdateResult = userRequestDataSource.update(userId, uuid, data)
 
-            // Get the updated Room entity
-            val updatedRoomEntity = userRequestDataSource.getOneById(uuid)
+            roomUpdateResult.onSuccess {
+                currentRoomEntity
+                    .onSuccess {
+                        if (it != null && it.sid != null) {
+                            val sid = it.sid
+                            // Update user request in Firebase using the sid from the updated Room entity
+                            if (sid != null) {
+                                if (it.photo.toString()==data.photo){
+                                    remoteDataSource.update(
+                                        sid,
+                                        data.copy(sync = System.currentTimeMillis(),photo = null)
+                                    )
+                                }else{
+                                    val imageUrl = remoteImageDataSource.uploadImage(data.photo!!)
 
-            updatedRoomEntity
-                .onSuccess { if (it != null && it.sid!= null) {
-                    val sid = it.sid
-                    // Update user request in Firebase using the sid from the updated Room entity
-                    if (sid != null) {
+                                    if (imageUrl == null) {
+                                        Log.e("FIREBASE", "Failed to upload image")
+                                        return Failure(BasicError(Throwable("Failed to upload image")))
+                                    }
+                                    remoteDataSource.update(
+                                        sid,
+                                        data.copy(sync = System.currentTimeMillis(), photo = imageUrl)
+                                    )
+                                }
 
-                        remoteDataSource.update(sid, data.copy(sync = System.currentTimeMillis()))
+                            }
+                        }
                     }
-                } }
+            }.onFailure {
 
-            // Check if the updated Room entity is not null and has a sid
-            // Return success if both updates are successful
+            }
+
             Success(Unit)
         } catch (e: Exception) {
             // Handle any update failure
@@ -185,42 +203,33 @@ class UserRequestRepositoryImpl constructor(private val userRequestDataSource: U
     }
 
 
-    override suspend fun createUserRequest(data: UserRequestRequestModel):RepoResult<Unit> {
-//        return userRequestDataSource.create(data)
-        val imageUrl = remoteImageDataSource.uploadImage(data.photo)
+    override suspend fun createUserRequest(data: UserRequestRequestModel): RepoResult<Unit> {
+        val imageUrl = remoteImageDataSource.uploadImage(data.photo!!)
 
         if (imageUrl == null) {
             Log.e("FIREBASE", "Failed to upload image")
             return Failure(BasicError(Throwable("Failed to upload image")))
         }
         val updatedDataWithImage = data.copy(photo = imageUrl)
-        // Create a new user profile with the provided data using Firebase Realtime Database
         val result = remoteDataSource.create(updatedDataWithImage)
-
-        // Check if the user was created successfully in Firebase
         if (result is Success) {
             val sid = result.data.sid
-             Log.d("ROOM",sid)
             try {
-                val updatedData = updatedDataWithImage.copy(sid=sid, sync = System.currentTimeMillis())
-                Log.d("UPDATE REMOTE", updatedData.toString())
-                remoteDataSource.update(sid,updatedData)
-                // Save the user details in Room
-                userRequestDataSource.create(data.copy(sid=sid, sync = System.currentTimeMillis()))
-                Log.d("ROOMDB", "User saved in Room DB")
-
-                remoteUserDataSource.updateUserRequests(data.userId,sid)
-
-                    // Update the user entity with the updated list of requests
-
-
+                val updatedData =
+                    updatedDataWithImage.copy(sid = sid, sync = System.currentTimeMillis())
+                remoteDataSource.update(sid, updatedData)
+                remoteUserDataSource.updateUserRequests(data.userId, sid)
+                userRequestDataSource.create(
+                    data.copy(
+                        sid = sid,
+                        sync = System.currentTimeMillis()
+                    )
+                )
                 return Success(Unit)
             } catch (e: Exception) {
-                Log.e("ROOMDB", "Exception during Room DB operation", e)
                 return Failure(BasicError(Throwable("Exception during Room DB operation")))
             }
         } else {
-            Log.e("FIREBASE", "Failed to create user in Firebase")
             return Failure(BasicError(Throwable("Exception during Realtime DB operation")))
 
         }

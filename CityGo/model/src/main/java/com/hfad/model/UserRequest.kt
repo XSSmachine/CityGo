@@ -28,7 +28,7 @@ data class UserRequestResponseModel(
 data class UserRequestRequestModel(
     val uuid: String?,
     val userId: String,
-    val photo: String,
+    val photo: String?,
     val description: String,
     val address1: Address,
     val address2: Address,

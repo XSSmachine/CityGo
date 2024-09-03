@@ -100,7 +100,7 @@ class RoomUserDataSource constructor(private val dao: UserDao
      */
     override suspend fun updateUser(userId: String, data: UserProfileRequestModel): RepoResult<Unit> {
         return try {
-            dao.updateUser(userId, data.name, data.surname, data.profilePicture ?: "")
+            dao.updateUser(userId, data.name, data.surname, data.profilePicture ?: "",data.email ?: "",data.sync)
             Success(Unit) // Return Success with Unit since there's no body in the response
         } catch (e: Exception) {
             Failure(BasicError(e, ErrorCode.ERROR))

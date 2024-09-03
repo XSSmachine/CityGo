@@ -12,7 +12,7 @@ data class UserRequestRemoteEntity(
     @SerializedName("UserID")
     val userId: String,
     @SerializedName("Photo")
-    val photo: String,
+    val photo: String?,
     @SerializedName("Description")
     val description: String,
     @SerializedName("Address1")

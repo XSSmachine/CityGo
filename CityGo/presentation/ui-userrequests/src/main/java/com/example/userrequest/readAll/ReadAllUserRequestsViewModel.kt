@@ -127,7 +127,9 @@ fun UserRequestResponseModel.toContactListResponseModel()
         category=category,
         extraWorker=extraWorker,
         price=price,
-        sid=sid ?: ""
+        sid=sid ?: "",
+        status="",
+        offerPrice = 0
 
     )
 }

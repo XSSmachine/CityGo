@@ -22,7 +22,7 @@ interface OfferRemoteDataSource {
 
     suspend fun update(sid:String, offer: OfferRequestModel):RepoResult<Unit>
 
-    suspend fun updateStatus(sid:String, status: String):RepoResult<Unit>
+    suspend fun updateStatus(sid:String, status: Map<String,String>):RepoResult<Unit>
 
     suspend fun create(offer: OfferRequestModel):RepoResult<ResponseBody>
 

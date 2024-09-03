@@ -5,7 +5,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,28 +15,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.ui_users.R
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit) {
@@ -63,7 +69,6 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
             containerColor = Color(0xFFF0F0E6)
         )
     ) {
-
 
         Column(
             modifier = Modifier
@@ -81,13 +86,13 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 Row(modifier = Modifier.padding(12.dp)) {
                     Image(painter = painterResource(id = R.drawable.ellipse_601), contentDescription = "ellipse")
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "New appplication")
+                    Text(text = stringResource(id = R.string.new_application_title))
                 }
                 // Text fields
                 TextField(
                     value = userViewModel.spname,
                     onValueChange = { userViewModel.setSPName(it) },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(id = R.string.name_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -103,7 +108,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.spsurname,
                     onValueChange = { userViewModel.setSPSurame(it) },
-                    label = { Text("Surname") },
+                    label = { Text(stringResource(id = R.string.surname_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -119,7 +124,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.spemail,
                     onValueChange = { userViewModel.setSPEmail(it) },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(id = R.string.email_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -141,7 +146,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.address,
                     onValueChange = { userViewModel.setAddress(it) },
-                    label = { Text("Address") },
+                    label = { Text(stringResource(id = R.string.address_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -157,7 +162,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.zipCode,
                     onValueChange = { userViewModel.setZipCode(it) },
-                    label = { Text("ZIP Code") },
+                    label = { Text(stringResource(id = R.string.zip_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -173,7 +178,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.city,
                     onValueChange = { userViewModel.setCity(it) },
-                    label = { Text("City") },
+                    label = { Text(stringResource(id = R.string.city_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -189,7 +194,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                 TextField(
                     value = userViewModel.country,
                     onValueChange = { userViewModel.setCountry(it) },
-                    label = { Text("Country") },
+                    label = { Text(stringResource(id = R.string.country_text)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.DarkGray,
@@ -216,7 +221,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
 
 
                     Text(
-                        text = "Take a happy selfie",
+                        text = stringResource(id = R.string.happy_selfie_text),
                         color = Color.Black, // Set your desired text color
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Light, // Customize font weight if needed
@@ -231,7 +236,7 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                     Divider(modifier = Modifier.padding(10.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Photo of national ID or driver license",
+                        text = stringResource(id = R.string.id_picture_text),
                         color = Color.Black, // Set your desired text color
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Light, // Customize font weight if needed
@@ -242,12 +247,11 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Spacer(modifier = Modifier.height(8.dp))
                             ImageInput(text = "ID Card Front") { uri ->
-                                // Handle the received URI here, for example, update selfiePicture state
                                 userViewModel.setIdCardFrontPicture(uri)
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Frontside",
+                                text = stringResource(id = R.string.id_front),
                                 color = Color.Black, // Set your desired text color
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Light, // Customize font weight if needed
@@ -258,16 +262,15 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Spacer(modifier = Modifier.size(8.dp))
                             ImageInput(text = "ID Card Back") { uri ->
-                                // Handle the received URI here, for example, update selfiePicture state
                                 userViewModel.setIdCardBackPicture(uri)
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Backside",
-                                color = Color.Black, // Set your desired text color
+                                text = stringResource(id = R.string.id_back),
+                                color = Color.Black,
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Light, // Customize font weight if needed
-                                fontStyle = FontStyle.Normal// Customize font style (e.g., italic)
+                                fontWeight = FontWeight.Light,
+                                fontStyle = FontStyle.Normal
                             )
                         }
 
@@ -276,15 +279,14 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                     Divider(modifier = Modifier.padding(10.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Upload a photo of your vehicle",
-                        color = Color.Black, // Set your desired text color
+                        text = stringResource(id = R.string.vehicle_picture),
+                        color = Color.Black,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Light, // Customize font weight if needed
-                        fontStyle = FontStyle.Normal// Customize font style (e.g., italic)
+                        fontWeight = FontWeight.Light,
+                        fontStyle = FontStyle.Normal
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     ImageInput(text = "Vehicle") { uri ->
-                        // Handle the received URI here, for example, update selfiePicture state
                         userViewModel.setVehiclePicture(uri)
                     }
                 }
@@ -298,14 +300,14 @@ fun FormScreen(userViewModel: UserProfileViewModel, onButtonClicked: () -> Unit)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp), // Make the button fill the maximum width
+                        .padding(8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Yellow, // Set background color to yellow
-                        contentColor = Color.Black // Set text color to black
+                        containerColor = Color.Yellow,
+                        contentColor = Color.Black
                     )
                 ) {
                     Text(
-                        text = "Submit",
+                        text = stringResource(id = R.string.btn_submit),
                         style = TextStyle.Default.copy(fontSize = 20.sp)
                     )
                 }
@@ -321,50 +323,111 @@ fun PendingScreen(
     navController: NavController,
     userViewModel: UserProfileViewModel = hiltViewModel()
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+
+    val status by userViewModel.statusLiveData.collectAsState(initial = "")
+
+    LaunchedEffect(Unit) {
+        userViewModel.refreshStatus()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        if (userViewModel.statusLiveData=="Pending"){
-            Text(
-                text = "Pending...",
-                style = TextStyle(fontSize = 24.sp),
-                textAlign = TextAlign.Center
-            )
-        }else if (userViewModel.statusLiveData=="Accepted"){
-//            Text(
-//                text = "Čestitamo, postali ste prijevoznik za CityGo",
-//                style = TextStyle(fontSize = 24.sp),
-//                textAlign = TextAlign.Center
-//            )
-//            Button(onClick = { navController.navigate("provider") }) {
-//                
-//            }
-            
-            CygoScreen(navController = navController)
-        }else if (userViewModel.statusLiveData=="Denied"){
-            Text(
-                text = "Denied...",
-                style = TextStyle(fontSize = 24.sp),
-                textAlign = TextAlign.Center
-            )
-
-            Button(
-                onClick = {  userViewModel.deleteServiceProviderApplication() },
-                colors = ButtonDefaults.buttonColors(Color.Gray),
-
-                ) {
-                Text(text = "Uredu", color = Color.White)
-            }
-
-        }else{
-            FormScreen(userViewModel = userViewModel) {
+        when (status) {
+            "Pending" -> PendingContent(userViewModel)
+            "Accepted" -> AcceptedContent(navController)
+            "Denied" -> DeniedContent(userViewModel)
+            else -> FormScreen(userViewModel) {
                 userViewModel.setStatusLiveData("Pending")
             }
         }
-
     }
 }
+
+@Composable
+fun PendingContent(userViewModel: UserProfileViewModel) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    SwipeRefresh(
+        state = rememberSwipeRefreshState(isRefreshing),
+        onRefresh = {
+            isRefreshing = true
+            userViewModel.refreshStatus()
+        }
+    ) {
+    LazyColumn(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            CircularProgressIndicator(
+                color = Color.Yellow,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(id = R.string.pending_text),
+                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(id = R.string.review_application_text),
+                style = TextStyle(fontSize = 16.sp, color = Color.Gray),
+                textAlign = TextAlign.Center
+            )
+        }
+
+    }
+    }
+    LaunchedEffect(userViewModel.statusLiveData) {
+        isRefreshing = false
+    }
+}
+
+@Composable
+fun AcceptedContent(navController: NavController) {
+    CygoScreen(navController = navController)
+}
+
+@Composable
+fun DeniedContent(userViewModel: UserProfileViewModel) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Denied",
+            tint = Color.Red,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(id = R.string.denied_entry_text),
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(id = R.string.denied_desc_text),
+            style = TextStyle(fontSize = 16.sp, color = Color.Gray),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = { userViewModel.deleteServiceProviderApplication() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+        ) {
+            Text(text = "Okay", color = Color.White)
+        }
+    }
+}
+
 
 @Composable
 fun CygoScreen(navController:NavController) {
@@ -375,7 +438,7 @@ fun CygoScreen(navController:NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Čestitamo, postali ste Cygo prijevoznik",
+            text = stringResource(id = R.string.cygo_congrats),
             color = Color.Black,
             fontSize = 24.sp
         )
@@ -396,7 +459,7 @@ fun CygoScreen(navController:NavController) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Jednostavno nađite i dogovorite posao bez puno priče",
+                text = stringResource(id = R.string.congrats_desc),
                 fontSize = 18.sp,textAlign = TextAlign.Center
 
             )
@@ -404,7 +467,7 @@ fun CygoScreen(navController:NavController) {
             // Steps
             for (i in 1..4) {
                 Text(
-                    text = "$i Your step description here",
+                    text = "$i "+ stringResource(id = R.string.step_desc),
                     fontSize = 16.sp,textAlign = TextAlign.Center
 
                 )
@@ -415,7 +478,7 @@ fun CygoScreen(navController:NavController) {
                 colors = ButtonDefaults.buttonColors(Color.Gray),
 
             ) {
-                Text(text = "KRENI!", color = Color.White)
+                Text(text = stringResource(id = R.string.letsgo), color = Color.White)
             }
         }
 

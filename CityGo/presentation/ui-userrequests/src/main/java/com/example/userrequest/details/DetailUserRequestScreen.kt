@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,42 +28,38 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -77,7 +74,6 @@ import com.hfad.model.Loading
 import com.hfad.model.Triumph
 import com.hfad.model.UserProfileResponseModel
 import com.hfad.model.UserRequestResponseModel
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -89,67 +85,60 @@ private var navController: NavHostController? = null
 private lateinit var viewModel: DetailUserRequestViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnrememberedMutableState")
 @Composable
 fun DetailScreen(
     ViewModel: DetailUserRequestViewModel,
     requestId: String,
-    userId:String,
-    navigateUp:() ->Unit,
+    userId: String,
+    navigateUp: () -> Unit,
     onUserRequestUpdate: (String, String) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
 ) {
-
     context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-
-    val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
-    val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
-    viewModel=ViewModel
+    viewModel = ViewModel
 
     activity = ((LocalContext.current as? Activity)!!)
 
-    val userData = remember { mutableStateOf(UserProfileResponseModel(
-        id="",
-        email="",
-        name="",
-        surname = "",
-        stars=0.0,
-        profilePicture ="",
-        phoneNumber = "",
-        sid = null,
-        sync = null,
-        requests = null
+    val userData = remember {
+        mutableStateOf(
+            UserProfileResponseModel(
+                id = "",
+                email = "",
+                name = "",
+                surname = "",
+                stars = 0.0,
+                profilePicture = "",
+                phoneNumber = "",
+                sid = null,
+                sync = null,
+                requests = null
 
-    ))}
+            )
+        )
+    }
 
-    val state = remember { mutableStateOf(UserRequestResponseModel(
-        uuid="",
-        date = "",
-        userId = "",
-        photo = "".toUri(),
-        description="",
-        address1 = Address("",null,null,true,0,"",""),
-        address2= Address("",null,null,true,0,"",""),
-        timeTable="",
-        category="",
-        extraWorker=false,
-        price=0,
-        sid = "",
-        sync = null,
-        offers = null
-        )) }
+    val state = remember {
+        mutableStateOf(
+            UserRequestResponseModel(
+                uuid = "",
+                date = "",
+                userId = "",
+                photo = "".toUri(),
+                description = "",
+                address1 = Address("", null, null, true, 0, "", ""),
+                address2 = Address("", null, null, true, 0, "", ""),
+                timeTable = "",
+                category = "",
+                extraWorker = false,
+                price = 0,
+                sid = "",
+                sync = null,
+                offers = null
+            )
+        )
+    }
 
 
 
@@ -159,22 +148,23 @@ fun DetailScreen(
 
 //
 
-            viewModel.getUserRequest(requestId,userId)
+        viewModel.getUserRequest(requestId, userId)
 
 
 
 
         viewModel.getProfileDetails(userId)
-        viewModel.requestViewState.observe(lifecycleOwner){value ->
-            Log.d("DETAIL_STATE",value.toString())
-            when(value){
+        viewModel.requestViewState.observe(lifecycleOwner) { value ->
+            Log.d("DETAIL_STATE", value.toString())
+            when (value) {
 
-                is Loading ->{
+                is Loading -> {
 
 
                 }
+
                 is Triumph -> {
-                    when(value.data){
+                    when (value.data) {
 
                         is UserRequestResponseModel -> {
 
@@ -183,32 +173,37 @@ fun DetailScreen(
 
                     }
                 }
+
                 is Error -> {
 
-                    Toast.makeText(context,"No user data",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "No user data", Toast.LENGTH_SHORT).show()
                 }
+
                 else -> {
 
                 }
             }
         }
 
-        viewModel.profileViewState.observe(lifecycleOwner){value ->
-            when(value){
-                is Loading ->{
+        viewModel.profileViewState.observe(lifecycleOwner) { value ->
+            when (value) {
+                is Loading -> {
                     //Loading case
                 }
+
                 is Triumph -> {
-                    when(value.data){
+                    when (value.data) {
                         is UserProfileResponseModel -> {
                             userData.value = value.data
                         }
 
                     }
                 }
+
                 is Error -> {
 
                 }
+
                 else -> {}
             }
         }
@@ -225,21 +220,21 @@ fun DetailScreen(
                     .verticalScroll(rememberScrollState())
             ) {
 
-            Box(){
-                Image(
-                    painter = rememberAsyncImagePainter(state.value.photo),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                )
+                Box() {
+                    Image(
+                        painter = rememberAsyncImagePainter(state.value.photo),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                    )
 
-                // TopAppBar
+                    // TopAppBar
 
-                IconButton(onClick = navigateUp) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = navigateUp) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
 
 
@@ -250,21 +245,25 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (viewModel.getIdValue()==userId){
-                        Button(onClick = { onUserRequestUpdate(requestId,userId) },
-                            colors= ButtonDefaults.buttonColors(
+                    if (viewModel.getIdValue() == userId) {
+                        Button(
+                            onClick = { onUserRequestUpdate(requestId, userId) },
+                            colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Yellow,
                                 contentColor = Color.Black
-                            )) {
+                            )
+                        ) {
                             Icon(Icons.Default.Create, contentDescription = "Update")
                         }
-                        }
+                    }
 
-                    Button(onClick = { /* Handle second button click */ },
-                        colors= ButtonDefaults.buttonColors(
+                    Button(
+                        onClick = { /* Handle second button click */ },
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Yellow,
-                        contentColor = Color.Black
-                    )) {
+                            contentColor = Color.Black
+                        )
+                    ) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
                     }
                 }
@@ -273,19 +272,26 @@ fun DetailScreen(
 
                 // Column with pickup time
                 Row {
-                    Image(imageVector = Icons.Default.DateRange, contentDescription = "Pick-up time")
-                    Text(text = "Pick-up Time")
+                    Image(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Pick-up time"
+                    )
+                    Text(text = stringResource(id = R.string.pickup_time))
                 }
                 Column {
                     val currentDateTime = LocalDateTime.now(ZoneId.of("CET"))
 
                     // Get current date and next day
                     val currentDate = currentDateTime.toLocalDate()
-                    if (state.value.timeTable.substringAfter(",").equals(currentDate.format(
-                            DateTimeFormatter.ofPattern("dd/MM/yyyy")))){
-                        Text(text = "Today")
-                    }else{
-                        Text(text = "Tommorow")
+                    if (state.value.timeTable.substringAfter(",").equals(
+                            currentDate.format(
+                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            )
+                        )
+                    ) {
+                        Text(text = stringResource(id = R.string.today_title))
+                    } else {
+                        Text(text = stringResource(id = R.string.tommorow_title))
                     }
 
                     FilledIconToggleButton(
@@ -304,17 +310,19 @@ fun DetailScreen(
 
                 // Button filling whole row
 
-                if (viewModel.getIdValue()==userId){
+                if (viewModel.getIdValue() == userId) {
                     Button(
-                        onClick = { viewModel.deleteUserRequest(requestId,userId)
-                            navigateUp()},
+                        onClick = {
+                            viewModel.deleteUserRequest(requestId, userId)
+                            navigateUp()
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        colors= ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Yellow,
                             contentColor = Color.Black
                         )
                     ) {
-                        Text(text = "Delete User Request")
+                        Text(text = stringResource(id = R.string.delete_request))
                     }
                 }
 
@@ -340,8 +348,8 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Price")
-                    Text(text = state.value.price.toString()+" €")
+                    Text(text = stringResource(id = R.string.price_text))
+                    Text(text = state.value.price.toString() + " €")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -349,11 +357,10 @@ fun DetailScreen(
                 // Separator with description text
                 Divider()
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Description")
-//                Text(text = detailUserRequestViewModel.state?.description.toString())
+                Text(text = stringResource(id = R.string.desc_text))
                 OutlinedTextField(
                     value = state.value.description,
-                    onValueChange = { /* Do nothing */  },
+                    onValueChange = { /* Do nothing */ },
                     minLines = 3,
                     maxLines = 3,
                     modifier = Modifier
@@ -374,34 +381,51 @@ fun DetailScreen(
 
                 // Row with some text
                 Column {
-                    if (state.value.extraWorker){
-                        Text(text = "Need 2 workers for the job")
-                    }else{
-                        Text(text = "Only 1 worker for the job")
+                    if (state.value.extraWorker) {
+                        Text(text = stringResource(id = R.string.worker_2))
+                    } else {
+                        Text(text = stringResource(id = R.string.worker_1))
                     }
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Card {
-                        if (state.value.extraWorker){
+                        if (state.value.extraWorker) {
 
 
-                        Row {
-                            Icon(painter = painterResource(id = R.drawable.baseline_directions_run_24), contentDescription = "Worker")
-                            Icon(painter = painterResource(id = R.drawable.baseline_directions_run_24), contentDescription = "Worker")
-                        }}else{
                             Row {
-                                Icon(painter = painterResource(id = R.drawable.baseline_directions_run_24), contentDescription = "Worker")
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_directions_run_24),
+                                    contentDescription = "Worker"
+                                )
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_directions_run_24),
+                                    contentDescription = "Worker"
+                                )
+                            }
+                        } else {
+                            Row {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_directions_run_24),
+                                    contentDescription = "Worker"
+                                )
                             }
                         }
                     }
 
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                //Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = "Google Map Window")
+                Image(
+                    alignment = Alignment.Center,
+                    painter = painterResource(id = R.drawable.google_maps),
+                    contentDescription = "Google Map Window",
+                    modifier = Modifier
+                        .width(370.dp)
+                        .height(300.dp) // Adjust the size as needed
+                )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                //Spacer(modifier = Modifier.height(16.dp))
 
                 // Custom composable for displaying 5 strings vertically
                 state.value.address1.let { it1 ->
@@ -412,7 +436,7 @@ fun DetailScreen(
                         text4 = it1.doorCode.toString(),
                         text5 = it1.phoneNumber,
                         icon = R.drawable.baseline_rocket_launch_24,
-                        desc = "Pickup address"
+                        desc = stringResource(id = R.string.pickup_address)
                     )
                 }
 
@@ -427,7 +451,7 @@ fun DetailScreen(
                         text4 = it2.doorCode.toString(),
                         text5 = it2.phoneNumber,
                         icon = R.drawable.baseline_done_all_24,
-                        desc = "Delivery address"
+                        desc = stringResource(id = R.string.delivery_address)
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -435,40 +459,59 @@ fun DetailScreen(
 
                 Row {
                     Text(
-                        text = "Owner",
+                        text = stringResource(id = R.string.owner_text),
                         style = TextStyle(
                             fontWeight = FontWeight.Light, // Set the font weight to bold
                             fontSize = 20.sp // Set the font size to 20sp (adjust as needed)
-                        ))
+                        )
+                    )
 
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Row {
-
-                    if (userData.value.profilePicture.toString().isNullOrEmpty()){
-                        Image(painter = painterResource(id = R.drawable.user), contentDescription = "Default user image", modifier = Modifier.size(100.dp)
-                            )
-                    }else{
-                        AsyncImage(model = userData.value.profilePicture?.toUri(), contentDescription = "Owner image")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (userData.value.profilePicture.toString().isNullOrEmpty()) {
+                        Image(
+                            painter = painterResource(id = R.drawable.user),
+                            contentDescription = "Default user image",
+                            modifier = Modifier.size(80.dp)
+                        )
+                    } else {
+                        AsyncImage(
+                            model = userData.value.profilePicture?.toUri(),
+                            contentDescription = "avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(percent = 10))
+                        )
                     }
-                    Spacer(modifier = Modifier.size(4.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    Column {
-                        Text(text = userData.value.name)
-                        Spacer(modifier = Modifier.size(4.dp))
-                        Row {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Review rating",
-                                modifier = Modifier.size(16.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = userData.value.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = userData.value.stars.toString(),
+                                style = MaterialTheme.typography.bodyLarge
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = userData.value.stars.toString())
+                            Spacer(modifier = Modifier.width(12.dp))
+                            RatingBar(
+                                rating = userData.value.stars.toFloat(),
+                                spaceBetween = 4.dp
+                            )
                         }
-
                     }
-
                 }
+
 
             }
         }
@@ -477,17 +520,50 @@ fun DetailScreen(
 }
 
 @Composable
+fun RatingBar(
+    modifier: Modifier = Modifier,
+    rating: Float,
+    spaceBetween: Dp = 2.dp
+) {
+    val starIconEmpty = R.drawable.baseline_star_outline_24
+    val starIconFull = R.drawable.baseline_star_24
+    val starIconHalf = R.drawable.baseline_star_half_24
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spaceBetween)
+    ) {
+        repeat(5) { index ->
+            val starRating = index + 1
+            val icon = when {
+                starRating <= rating -> starIconFull
+                starRating - 0.5f <= rating -> starIconHalf
+                else -> starIconEmpty
+            }
+
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = "Star $starRating",
+                tint = Color(0xFFFFD700), // Gold color
+                modifier = Modifier.size(20.dp) // Adjust size as needed
+            )
+        }
+    }
+}
+
+
+@Composable
 fun CreateOfferButton(
     detailUserRequestViewModel: DetailUserRequestViewModel,
     navigateUp: () -> Unit,
     requestId: String,
-    offerExist:Boolean,
+    offerExist: Boolean,
     state: UserRequestResponseModel
 ) {
     var dialogOpen by remember { mutableStateOf(false) }
 
-    if (detailUserRequestViewModel.getUserRole() == "Cygo"){
-        Log.d("REQUESTID-",requestId.toString())
+    if (detailUserRequestViewModel.getUserRole() == "Cygo") {
+        Log.d("REQUESTID-", requestId.toString())
         if (offerExist) {
 
             Button(
@@ -497,7 +573,7 @@ fun CreateOfferButton(
             ) {
                 Text(text = "Already sent application")
             }
-        }else {
+        } else {
             Button(
                 onClick = { dialogOpen = true },
                 modifier = Modifier.fillMaxWidth()
@@ -519,9 +595,16 @@ fun CreateOfferButton(
 }
 
 
-
 @Composable
-fun DisplayVerticalText(text1: String, text2: Boolean, text3: String, text4: String, text5: String,icon:Int,desc:String) {
+fun DisplayVerticalText(
+    text1: String,
+    text2: Boolean,
+    text3: String,
+    text4: String,
+    text5: String,
+    icon: Int,
+    desc: String
+) {
     Column {
         Row {
             Icon(painter = painterResource(id = icon), contentDescription = "address")
@@ -531,113 +614,41 @@ fun DisplayVerticalText(text1: String, text2: Boolean, text3: String, text4: Str
         Spacer(modifier = Modifier.size(12.dp))
         Text(text = text1)
         Spacer(modifier = Modifier.size(7.dp))
-        if(text2){
+        if (text2) {
             Text(text = "Lift")
-        }else{
+        } else {
             Text(text = "Stairs")
         }
 
         Spacer(modifier = Modifier.size(7.dp))
-        Text(text = "Floors: "+text3)
+        Text(text = "Floors: " + text3)
         Spacer(modifier = Modifier.size(7.dp))
-        if (text4.isNullOrEmpty()){
-            Text(text = "Door code (optional): N/A")
-        }else{
-            Text(text = "Door code (optional): "+ text4)
+        if (text4.isNullOrEmpty()) {
+            Text(text = stringResource(id = R.string.emptyDoorCode))
+        } else {
+            Text(text = stringResource(id = R.string.descDoorCode) + text4)
         }
 
         Spacer(modifier = Modifier.size(7.dp))
         Row {
             Text(
-                text = "Contact: ",
+                text = stringResource(id = R.string.descContact),
                 style = TextStyle(
-                    fontWeight = FontWeight.ExtraBold, // Set the font weight to bold
-                    fontSize = 20.sp // Set the font size to 20sp (adjust as needed)
-                ))
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp
+                )
+            )
             Text(
                 text = text5,
                 style = TextStyle(
-                    fontWeight = FontWeight.Bold, // Set the font weight to bold
-                    fontSize = 20.sp, // Set the font size to 24sp (adjust as needed)
-                    color = Color.Blue // Set the text color to blue
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.Blue
                 )
             )
         }
     }
 }
-
-
-//@Composable
-//fun CreateOfferDialogScreen(
-//    viewModel:DetailUserRequestViewModel = hiltViewModel(),
-//    navigateUp: () -> Unit,
-//    requestId: String,
-//    state:UserRequestResponseModel
-//
-//
-//) {
-//    var confirmEnabled by remember { mutableStateOf(false) }
-//    var showDialog by remember { mutableStateOf(true) } // Add this line to control the visibility of the dialog
-//    val scope = rememberCoroutineScope()
-//    var price by remember{ mutableStateOf(state.price) }
-//    var timeTable by remember{ mutableStateOf(state.timeTable) }
-//
-//    if (showDialog) { // Wrap your AlertDialog inside this condition
-//        AlertDialog(
-//            onDismissRequest = {
-//                showDialog = false
-//            }, // The dialog will be dismissed when clicking outside
-//            title = { Text("Apply for the job") },
-//            text = {
-//                Column {
-//                    TextField(
-//                        value = state.price.toString(),
-//                        onValueChange = {
-//                            price=it.toInt()
-//                            confirmEnabled = price.toString().isNotBlank()
-//
-//                        },
-//                        keyboardOptions = KeyboardOptions(
-//                            keyboardType = KeyboardType.Number
-//                        ),
-//                        label = { Text("Price") }
-//                    )
-//                    TextField(
-//                        value = state.timeTable,
-//                        onValueChange = {
-//                            timeTable=it
-//                            confirmEnabled = price.toString().isNotBlank() && timeTable.isNotBlank()
-//                        },
-//                        label = { Text("Timetable(leave empty if current is ok)") }
-//                    )
-//                    CheckBox(confirmEnabled){
-//                        confirmEnabled=it
-//                    }
-//                }
-//            },
-//            confirmButton = {
-//                Button(
-//                    onClick = {
-//                        scope.launch {
-//                            viewModel.createOffer(
-//                                requestId,
-//                                price,
-//                                timeTable
-//                            )
-//                            navigateUp()
-//                        }
-//                        showDialog =
-//                            false // The dialog will be dismissed when the confirm button is clicked
-//                    },
-//                    enabled = confirmEnabled
-//                ) {
-//                    Text("Confirm")
-//                }
-//            },
-//            dismissButton = null // Set dismissButton to null to make the dialog not dismissable on click outside
-//        )
-//    }
-//}
 
 @Composable
 fun CreateOfferDialogScreen(
@@ -648,75 +659,66 @@ fun CreateOfferDialogScreen(
 ) {
     var showDialog by remember { mutableStateOf(true) }
     var price by remember { mutableStateOf(state.price.toString()) }
-    var timeTable by remember { mutableStateOf(state.timeTable)}
+    var timeTable by remember { mutableStateOf(state.timeTable) }
 
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showDialog = false
-                },
-                title = { Text("Apply for the job") },
-                text = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = price,
-                            onValueChange = { price = it },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number
-                            ),
-                            label = { Text("Price") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = timeTable,
-                            onValueChange = { timeTable = it },
-                            label = { Text("Timetable (leave empty if current is ok)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.createOffer(
-                                requestId,
-                                price.toIntOrNull() ?: 0,
-                                timeTable
-                            )
-                            navigateUp()
-                            showDialog = false
-                        },
-                        enabled = price.isNotBlank() && (timeTable.isNotBlank() || state.timeTable.isNotBlank())
-                    ) {
-                        Text("Confirm")
-                    }
-                },
-                dismissButton = {
-                    Button(
-                        onClick = {
-                            showDialog = false
-                        }
-                    ) {
-                        Text("Cancel")
-                    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+            },
+            title = { Text(stringResource(id = R.string.applyJob)) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = { price = it },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        label = { Text(stringResource(id = R.string.price_text)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = timeTable,
+                        onValueChange = { timeTable = it },
+                        label = { Text(stringResource(id = R.string.descTimetable)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            )
-        }
-    }
-
-@Composable
-fun CheckBox(checkedState: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row {
-        Checkbox(
-            checked = checkedState,
-            onCheckedChange = onCheckedChange
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.createOffer(
+                            requestId,
+                            price.toIntOrNull() ?: 0,
+                            timeTable
+                        )
+                        navigateUp()
+                        showDialog = false
+                    },
+                    enabled = price.isNotBlank() && (timeTable.isNotBlank() || state.timeTable.isNotBlank())
+                ) {
+                    Text(stringResource(id = R.string.confirmText))
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        showDialog = false
+                    }
+                ) {
+                    Text(stringResource(id = R.string.cancelText))
+                }
+            }
         )
-        Text(text = "I agree to do these job on these terms.")
     }
 }
+
+
 

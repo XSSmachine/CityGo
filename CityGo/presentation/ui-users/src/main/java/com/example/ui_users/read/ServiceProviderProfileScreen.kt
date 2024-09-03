@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,88 +17,63 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
+import coil.compose.AsyncImage
 import com.example.ui_users.R
 import com.hfad.model.Loading
 import com.hfad.model.ServiceProviderProfileResponseModel
 import com.hfad.model.Triumph
-import com.hfad.model.UserProfileResponseModel
 import kotlinx.coroutines.runBlocking
 
 private lateinit var context: Context
 private lateinit var activity: Activity
 private var navController: NavHostController? = null
 private lateinit var viewModel: UserProfileViewModel
+
 @Composable
 fun ServiceProviderProfileScreen(
     navController: NavController,
     ViewModel: UserProfileViewModel = hiltViewModel(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
-){
+) {
 
     context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-
-    val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
-    val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
-    viewModel= ViewModel
-
+    viewModel = ViewModel
     activity = ((LocalContext.current as? Activity)!!)
 
-    val userData = remember { mutableStateOf(
-        ServiceProviderProfileState()
-    )
+    val userData = remember {
+        mutableStateOf(
+            ServiceProviderProfileState()
+        )
     }
 
-
-
     LaunchedEffect(Unit) {
-        // Run on first screen compose
-
+        viewModel.getServiceProviderProfileDetails()
         viewModel.providerViewState.observe(lifecycleOwner) { value ->
             when (value) {
                 is Loading -> {
@@ -112,10 +88,7 @@ fun ServiceProviderProfileScreen(
                     }
                 }
 
-                is Error -> {
-
-                }
-
+                is Error -> {}
                 else -> {}
             }
         }
@@ -135,7 +108,7 @@ fun ServiceProviderProfileScreen(
         )
         {
             CreateImageProfile(userData.value)
-            CreateInfo(userData.value,viewModel,navController)
+            CreateInfo(userData.value, viewModel, navController)
             Divider()
         }
     }
@@ -154,15 +127,16 @@ private fun CreateImageProfile(userData: ServiceProviderProfileState) {
         tonalElevation = 4.dp,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     ) {
-        Log.d("VIDIM",userData.profilePicture.toString())
+        Log.d("VIDIM", userData.profilePicture.toString())
         if (userData.profilePicture.isNotEmpty()) {
-            Image(
+            AsyncImage(
+                model = userData.profilePicture.toUri(),
+                contentDescription = "user image",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .padding(16.dp, 16.dp)
-                    .width(98.dp)
-                    .height(98.dp),
-                painter = rememberAsyncImagePainter(userData.profilePicture.toUri()),
-                contentDescription = "Image"
+                    .size(10.responsiveHeight())
+                    .clip(CircleShape)
+                    .border(2.dp, Color.DarkGray, CircleShape)
             )
         } else {
             Image(
@@ -176,7 +150,11 @@ private fun CreateImageProfile(userData: ServiceProviderProfileState) {
 }
 
 @Composable
-private fun CreateInfo(userData: ServiceProviderProfileState,viewModel: UserProfileViewModel,navController: NavController) {
+private fun CreateInfo(
+    userData: ServiceProviderProfileState,
+    viewModel: UserProfileViewModel,
+    navController: NavController
+) {
     Column(
         modifier = Modifier
             .padding(5.dp),
@@ -186,7 +164,7 @@ private fun CreateInfo(userData: ServiceProviderProfileState,viewModel: UserProf
         Text(
             fontSize = 30.sp,
             style = MaterialTheme.typography.headlineMedium,
-            text =userData.name
+            text = userData.name
         )
 
         Text(
@@ -209,24 +187,25 @@ private fun CreateInfo(userData: ServiceProviderProfileState,viewModel: UserProf
         )
 
         Text(
-            text = userData.stars.toString()+"⭐",
+            text = userData.stars.toString() + "⭐",
             modifier = Modifier.padding(3.dp),
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.padding(12.dp))
-        Button(onClick = {
-            runBlocking { viewModel.clearUserId() }
-            navController.navigate("login")
+        Button(
+            onClick = {
+                runBlocking { viewModel.clearUserId() }
+                navController.navigate("login")
 
 
-        },contentPadding = PaddingValues(5.dp),
+            }, contentPadding = PaddingValues(5.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black
             )
 
         ) {
 
-            Text(text = "Log out")
+            Text(text = stringResource(id = R.string.logout_text))
         }
 
     }

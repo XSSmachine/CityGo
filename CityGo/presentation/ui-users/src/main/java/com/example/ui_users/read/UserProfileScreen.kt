@@ -22,7 +22,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,13 +44,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -71,6 +67,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,42 +76,39 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import com.example.ui_users.R
-import com.hfad.model.Address
 import com.hfad.model.Loading
 import com.hfad.model.Triumph
 import com.hfad.model.UserProfileResponseModel
-import com.hfad.model.UserRequestResponseModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -124,7 +118,7 @@ private lateinit var activity: Activity
 private var navController: NavHostController? = null
 private lateinit var viewModel: UserProfileViewModel
 @RequiresApi(Build.VERSION_CODES.N)
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class,
+@OptIn(
     ExperimentalFoundationApi::class
 )
 @Composable
@@ -135,22 +129,10 @@ fun UserProfileScreen(
 ) {
 
     context = LocalContext.current
-    val focusRequester = remember { FocusRequester() }
-
-
     val scope = rememberCoroutineScope()
-//    val scaffoldState = rememberScaffoldState()
-    val snackBarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Get screen width and height for padding calculation
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-
     viewModel= ViewModel
-
     activity = ((LocalContext.current as? Activity)!!)
+    val pagerState = rememberPagerState(pageCount = {2}, initialPage = viewModel.tabIndex)
 
     val userData = remember { mutableStateOf(
         UserProfileResponseModel(
@@ -167,7 +149,6 @@ fun UserProfileScreen(
 
     )
     )}
-
 
 
     LaunchedEffect(Unit) {
@@ -195,8 +176,10 @@ fun UserProfileScreen(
             }
         }
     }
-    val pagerState = rememberPagerState(pageCount = {2})
-    val selectedTabIndex = remember{ derivedStateOf { pagerState.currentPage }}
+//    val selectedTabIndex = remember{ mutableStateOf(0) }
+
+
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -212,15 +195,16 @@ fun UserProfileScreen(
         )
         {
             TabRow(
-                selectedTabIndex = selectedTabIndex.value,
+                selectedTabIndex = pagerState.currentPage,
                 modifier = Modifier.fillMaxWidth(),
 //                containerColor = Color.Yellow,
                 divider= {}, indicator = { tabPositions ->
-                    if (selectedTabIndex.value < tabPositions.size) {
+                    if (pagerState.currentPage < tabPositions.size) {
                         TabRowDefaults.Indicator(
                             modifier = Modifier
-                                .tabIndicatorOffset(tabPositions[selectedTabIndex.value]),
-                            color = Color.Black,
+                                .tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                            color = Color.Gray,
+                            height = 2.dp
                         )
                     }
                 },
@@ -228,15 +212,20 @@ fun UserProfileScreen(
 
             ) {
                 Tab(
-                    text = { Text("Owner") },
-                    selected = selectedTabIndex.value == 0,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(0) }
+                    text = { Text(stringResource(id = R.string.owner_text), color = Color.DarkGray) },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(0)
+                    viewModel.setTabIndex(0)
+                    }
                          }
                 )
                 Tab(
-                    text = { Text("CyGo") },
-                    selected = selectedTabIndex.value == 1,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(1)} }
+                    text = { Text("CyGo", color = Color.DarkGray) },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { scope.launch {
+                        pagerState.animateScrollToPage(1)
+                        viewModel.setTabIndex(1)
+                    } }
                 )
             }
         TabContent(pagerState = pagerState, userViewModel = viewModel, navController = navController,userData.value)
@@ -245,8 +234,20 @@ fun UserProfileScreen(
 
     }
 
+
+
+suspend fun Context.showToast(message: String) {
+    withContext(Dispatchers.Main) {
+        Toast.makeText(this@showToast, message, Toast.LENGTH_SHORT).show()
+    }
+}
+
+
 @Composable
 private fun CreateInfo(userViewModel: UserProfileResponseModel,viewModel: UserProfileViewModel,navController: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isUpdating by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .padding(2.dp),
@@ -285,31 +286,36 @@ private fun CreateInfo(userViewModel: UserProfileResponseModel,viewModel: UserPr
         Button(onClick = {
             runBlocking { viewModel.clearUserId() }
             navController.navigate("login")
-            
+
 
         },contentPadding = PaddingValues(5.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black
             )
-            
+
         ) {
 
-            Text(text = "Log out")
+            Text(text = stringResource(id = R.string.logout_text))
         }
 
-        Button(onClick = {
-            viewModel.updateServiceProviderStatus("Accepted")
-//            navController.navigate("provider")
-
-
-        },contentPadding = PaddingValues(5.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black
-            )
-
+        Button(
+            onClick = {
+                scope.launch {
+                    isUpdating = true
+                    try {
+                        viewModel.updateServiceProviderStatus("Accepted")
+                        context.showToast("Status updated successfully")
+                    } catch (e: Exception) {
+                        context.showToast("Failed to update status: ${e.message}")
+                    } finally {
+                        isUpdating = false
+                    }
+                }
+            },
+            enabled = !isUpdating
         ) {
 
-            Text(text = "Accept Application")
+            Text(text = stringResource(id = R.string.accept_application))
         }
     }
 }
@@ -323,7 +329,19 @@ fun MotivationCard(title: String, body: String) {
             .padding(16.dp)
     ) {
         Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.nature_city),
+                contentDescription = "Background",
+                alpha = 0.6f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                contentScale = ContentScale.Crop
+            )
             Column(
                 modifier = Modifier
                     .padding(6.dp)
@@ -332,7 +350,7 @@ fun MotivationCard(title: String, body: String) {
             ) {
                 Text(
                     text = title,
-                    style = TextStyle(fontWeight = FontWeight.Bold),
+                    style = TextStyle(fontWeight = FontWeight.Bold, color = Color.Black),
                     modifier = Modifier.padding(22.dp)
                 )
                 Text(
@@ -340,7 +358,7 @@ fun MotivationCard(title: String, body: String) {
                     style = TextStyle(fontWeight = FontWeight.Normal)
                 )
             }
-            
+
         }
     }
 }
@@ -354,7 +372,20 @@ fun AdCard(title: String, body: String) {
             .padding(16.dp)
     ) {
         Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.modern_van_delivery),
+                contentDescription = "Background",
+                alpha = 0.7f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.tint(Color.White,blendMode = BlendMode.Softlight)
+            )
             Column(
                 modifier = Modifier
                     .padding(6.dp)
@@ -363,12 +394,12 @@ fun AdCard(title: String, body: String) {
             ) {
                 Text(
                     text = title,
-                    style = TextStyle(fontWeight = FontWeight.Bold),
+                    style = TextStyle(fontWeight = FontWeight.W800, color = Color.Black),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
                     text = body,
-                    style = TextStyle(fontWeight = FontWeight.Normal)
+                    style = TextStyle(fontWeight = FontWeight.W600, color = Color.Black)
                 )
             }
             Image(
@@ -389,7 +420,7 @@ fun AdCard(title: String, body: String) {
 private fun CreateImageProfile(userViewModel: UserProfileResponseModel,modifier: Modifier = Modifier) {
     Surface(
         modifier = Modifier
-            .size(124.dp),
+            .size(16.responsiveHeight()),
         shape = CircleShape,
         border = BorderStroke(2.dp, Color.LightGray),
         tonalElevation = 4.dp,
@@ -401,7 +432,7 @@ private fun CreateImageProfile(userViewModel: UserProfileResponseModel,modifier:
                 contentDescription = "user image",
                 contentScale = ContentScale.Crop,            // crop the image if it's not a square
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(10.responsiveHeight())
                     .clip(CircleShape)
                     .border(2.dp, Color.DarkGray, CircleShape)// clip to the circle shape
             )
@@ -457,32 +488,41 @@ private fun ProfileScreen(userData:UserProfileResponseModel,userViewModel: UserP
             }
         }
 
-        AdCard(title = "Help us, invite your friends", body = "Refer to your friends and gift them 5 € discount when they create their first order, we will donate 5 € to Plant-for-the-Planet.")
-        ClickableIconTextRow(icon = painterResource(id = R.drawable.pin_alt_fill), text = "Saved address:" ) {
+        AdCard(title = stringResource(id = R.string.help_title), body = stringResource(id = R.string.help_body))
+        ClickableIconTextRow(icon = painterResource(id = R.drawable.pin_alt_fill), text = stringResource(
+            id = R.string.saved_address_text
+        ) ) {
 
         }
-        ClickableIconTextRow(icon = painterResource(id = R.drawable.bell_fill), text = "Notifications" ) {
+        ClickableIconTextRow(icon = painterResource(id = R.drawable.bell_fill), text = stringResource(
+            id = R.string.notifications_text
+        ) ) {
 
         }
-        ClickableIconTextRow(icon = painterResource(id = R.drawable.chat_fill), text = "Support" ) {
+        ClickableIconTextRow(icon = painterResource(id = R.drawable.chat_fill), text = stringResource(
+            id = R.string.support_text
+        ) ) {
 
         }
-        ClickableIconTextRow(icon = painterResource(id = R.drawable.book_check_fill), text = "Become a courier" ) {
+        ClickableIconTextRow(icon = painterResource(id = R.drawable.book_check_fill), text = stringResource(
+            id = R.string.become_cygo_text
+        ) ) {
 
         }
-        
-        MotivationCard(title = "We simply want better planet and more efficient services", body = "")
+
+        MotivationCard(title = stringResource(id = R.string.help_title2), body = "")
+
 
         Row {
 
             Spacer(modifier = Modifier.width(20.dp))
-                Text(text = "Logout",style = TextStyle(fontWeight = FontWeight.Light), modifier = Modifier.clickable{
+                Text(text = stringResource(id = R.string.logout_text),style = TextStyle(fontWeight = FontWeight.Light), modifier = Modifier.clickable{
                     runBlocking { userViewModel.clearUserId() }
                     navController.navigate("login")
                 })
 
             Spacer(modifier = Modifier.width(105.dp))
-            Text(text = "Version: 1.0.0",style = TextStyle(fontWeight = FontWeight.Light))
+            Text(text = stringResource(id = R.string.version_text)+" 1.0.0",style = TextStyle(fontWeight = FontWeight.Light))
         }
         Spacer(modifier = Modifier.size(50.dp))
     }
@@ -491,30 +531,36 @@ private fun ProfileScreen(userData:UserProfileResponseModel,userViewModel: UserP
 @RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TabContent(pagerState: PagerState,userViewModel: UserProfileViewModel,navController: NavController,userData:UserProfileResponseModel) {
+fun TabContent(
+    pagerState: PagerState,
+    userViewModel: UserProfileViewModel,
+    navController: NavController,
+    userData: UserProfileResponseModel
+) {
+    val status by userViewModel.statusLiveData.collectAsState(initial = "")
+
     HorizontalPager(state = pagerState) { index ->
         when (index) {
             0 -> {
-                // Content for the first tab (e.g., HomeScreen)
-                ProfileScreen( userData = userData, userViewModel = userViewModel, navController = navController)
-                userViewModel.setUserRole("Owner")
-            }
-
-            1 -> {
-                // Content for the second tab (e.g., SearchScreen)
-                if (userViewModel.statusLiveData=="Accepted"){
-                    ServiceProviderProfileScreen(navController,userViewModel)
-                    userViewModel.setUserRole("Cygo")
-                }else{
-                    PendingScreen(navController = navController,userViewModel)
-
+                ProfileScreen(userData = userData, userViewModel = userViewModel, navController = navController)
+                LaunchedEffect(Unit) {
+                    userViewModel.setUserRole("Owner")
                 }
-                
             }
-
+            1 -> {
+                if (status == "Accepted") {
+                    ServiceProviderProfileScreen(navController, userViewModel)
+                    LaunchedEffect(Unit) {
+                        userViewModel.setUserRole("Cygo")
+                    }
+                } else {
+                    PendingScreen(navController = navController, userViewModel = userViewModel)
+                }
+            }
         }
     }
 }
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -572,6 +618,18 @@ fun ImageInput(text: String, onImageUriReceived: (Uri?) -> Unit) {
 
             )
         }
+
+    else if (text=="ID Card Front" || text=="ID Card Back"){
+
+        Image(
+            painter = painterResource(R.drawable.group_id),
+            contentDescription = "icon",
+            modifier = Modifier
+                .clickable(onClick = { isSheetOpen = true })
+
+        )
+    }
+
 
         else {
             Button(
@@ -764,7 +822,7 @@ fun ShowDatePicker(context: Context, onDateSelected: (String) -> Unit) {
         TextField(
             value = selectedDate.value,
             onValueChange = { selectedDate.value=it },
-            label = { Text("Date of birth", color = Color.Black) },
+            label = { Text(stringResource(id = R.string.date_birth_text), color = Color.Black) },
             enabled=false,
             modifier = Modifier
                 .fillMaxWidth()
@@ -799,3 +857,16 @@ fun ClickableIconTextRow(icon: Painter, text: String, onClick: () -> Unit) {
 }
 
 
+@Composable
+fun Int.responsiveWidth(): Dp {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    return (this * screenWidth.value / 100).dp
+}
+
+@Composable
+fun Int.responsiveHeight(): Dp {
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    return (this * screenHeight.value / 100).dp
+}

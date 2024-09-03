@@ -125,9 +125,9 @@ class RemoteOfferDataSource constructor(private val dao: RemoteOfferDao):
         }
     }
 
-    override suspend fun updateStatus(sid: String, status: String): RepoResult<Unit> {
+    override suspend fun updateStatus(sid: String, status: Map<String,String>): RepoResult<Unit> {
         return try {
-            dao.updateOfferStatus(sid,status)
+            dao.updateOfferStatus(sid.trim(),status)
             Success(Unit) // Return Success with Unit since there's no body in the response
         } catch (e: Exception) {
             Failure(BasicError(e, ErrorCode.ERROR))

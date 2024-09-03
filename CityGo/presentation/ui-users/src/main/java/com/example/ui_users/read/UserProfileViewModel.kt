@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -28,6 +30,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.hfad.model.BasicError
 import com.hfad.model.Error
 import com.hfad.model.Failure
+import com.hfad.model.RepoResult
 import com.hfad.model.ServiceProviderProfileRequestModel
 import com.hfad.model.ServiceProviderProfileResponseModel
 import com.hfad.model.Success
@@ -38,6 +41,9 @@ import com.hfad.model.ViewState
 import com.hfad.model.onFailure
 import com.hfad.model.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -59,7 +65,9 @@ class UserProfileViewModel @Inject constructor(
     ): ViewModel(){
 
     //user profile data
-    val _statusLiveData = mutableStateOf("")
+//    val _statusLiveData = mutableStateOf("")
+
+      private val _tabIndex = mutableStateOf(0)
     private val _profilePicture = mutableStateOf("")
     private val _name = mutableStateOf("")
     private val _surname = mutableStateOf("")
@@ -83,6 +91,10 @@ class UserProfileViewModel @Inject constructor(
     val viewState: LiveData<ViewState<UserProfileResponseModel>>
         get() = _viewState
 
+    fun updateUserData(newData: ViewState<UserProfileResponseModel>) {
+        _viewState.value = newData
+    }
+
     protected val _providerViewState = MutableLiveData<ViewState<ServiceProviderProfileResponseModel>>()
     val providerViewState: LiveData<ViewState<ServiceProviderProfileResponseModel>>
         get() = _providerViewState
@@ -91,18 +103,35 @@ class UserProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            getProfileDetails(getIdValue())
-            getServiceProviderApplicationStatus()
-            getServiceProviderProfileDetails(getIdValue())
+            getProfileDetails()
+            refreshStatus()
+            getServiceProviderProfileDetails()
         }
 
     }
-    val statusLiveData:String
-        get() = _statusLiveData.value
+    private val _statusLiveData = MutableStateFlow("")
+    val statusLiveData: StateFlow<String> = _statusLiveData.asStateFlow()
 
-    fun setStatusLiveData(value:String){
-        _statusLiveData.value=value
+//    fun refreshStatus() {
+//        viewModelScope.launch {
+//            val newStatus = repository.fetchUserStatus()
+//            _statusLiveData.value = newStatus
+//        }
+//    }
+
+    fun setStatusLiveData(status: String) {
+        viewModelScope.launch {
+            _statusLiveData.value = status
+        }
     }
+
+    val tabIndex: Int
+        get() = _tabIndex.value
+
+    fun setTabIndex(value: Int) {
+        _tabIndex.value = value
+    }
+
     val spname: String
         get() = sp_name.value
 
@@ -219,21 +248,22 @@ class UserProfileViewModel @Inject constructor(
     }
 
 
-    fun updateUserProfile(data:UserProfileResponseModel){
+    suspend fun updateUserProfile(data:UserProfileResponseModel){
         viewModelScope.launch {
-            updateUserProfileUseCase.execute(getIdValue(),
-                UserProfileRequestModel(
-                    getIdValue(),
-                    name=data.name,
-                    surname=data.surname,
-                    email=data.email,
-                    phoneNumber = "",
-                    profilePicture=data.profilePicture!!,
-                    stars = 4.00,
-                    sid = null,
-                    sync = null,
-                    requests = emptyList()
-                    ))
+            val user = UserProfileRequestModel(
+                getIdValue(),
+                name=data.name,
+                surname=data.surname,
+                email=data.email,
+                phoneNumber = "",
+                profilePicture=data.profilePicture!!,
+                stars = 4.00,
+                sid = null,
+                sync = null,
+                requests = emptyList()
+            )
+            updateUserProfileUseCase.execute(getIdValue(),user
+                ).onSuccess { _viewState.postValue(Triumph(user.toResponseModel())) }
         }
     }
 
@@ -246,19 +276,19 @@ class UserProfileViewModel @Inject constructor(
     }
 
 
-    fun getServiceProviderApplicationStatus(): String {
-        viewModelScope.launch {
-            try {
-                getServiceProviderStatusUseCase.execute(getIdValue())
-                    .onSuccess { setStatusLiveData(it.status)}
-                    .onFailure { setStatusLiveData("") }
-            }catch (e: Exception){
-                Failure(BasicError(Throwable(e)))
-            }
-        }
-
-        return statusLiveData
-    }
+//    fun getServiceProviderApplicationStatus(): String {
+//        viewModelScope.launch {
+//            try {
+//                getServiceProviderStatusUseCase.execute(getIdValue())
+//                    .onSuccess { setStatusLiveData(it.status)}
+//                    .onFailure { setStatusLiveData("") }
+//            }catch (e: Exception){
+//                Failure(BasicError(Throwable(e)))
+//            }
+//        }
+//
+//        return statusLiveData
+//    }
 
 
     suspend fun createServiceProviderProfile(){
@@ -291,7 +321,7 @@ class UserProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateServiceProviderStatus(status:String){
+    suspend fun updateServiceProviderStatus(status:String){
         viewModelScope.launch { updateServiceProviderStatusUseCase.execute(getIdValue(),status) }
 
     }
@@ -304,9 +334,9 @@ class UserProfileViewModel @Inject constructor(
     }
 
     @SuppressLint("SuspiciousIndentation")
-    suspend fun getProfileDetails(UserId:String){
+    suspend fun getProfileDetails(){
 
-            getUserProfileUseCase.execute(UserId)
+            getUserProfileUseCase.execute(getIdValue())
                 .onSuccess {
                     state = state.copy(
                         id = it.id,
@@ -331,8 +361,8 @@ class UserProfileViewModel @Inject constructor(
     }
 
     @SuppressLint("SuspiciousIndentation")
-    suspend fun getServiceProviderProfileDetails(UserId:String){
-        getServiceProviderStatusUseCase.execute(UserId)
+    suspend fun getServiceProviderProfileDetails(){
+        getServiceProviderStatusUseCase.execute(getIdValue())
             .onSuccess { _providerViewState.postValue(Triumph(it)) }
             .onFailure { _providerViewState.postValue(Error(it,"provider details error")) }
 
@@ -377,7 +407,24 @@ class UserProfileViewModel @Inject constructor(
         return r
     }
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    fun refreshStatus() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val newStatus = getServiceProviderStatusUseCase.execute(getIdValue())
+                 newStatus.onSuccess { _statusLiveData.value =it.status }
+            } catch (e: Exception) {
+                // Handle error
+                Log.e("UserProfileViewModel", "Error refreshing status", e)
+                // Optionally update UI to show error
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
 
 }
 
@@ -440,3 +487,19 @@ fun ServiceProviderProfileResponseModel.toServiceProviderProfileState(): Service
         stars = stars
     )
 }
+
+fun UserProfileRequestModel.toResponseModel(): UserProfileResponseModel {
+    return UserProfileResponseModel(
+        id = this.id,
+        name = this.name,
+        surname = this.surname,
+        email = this.email,
+        phoneNumber = this.phoneNumber,
+        profilePicture = this.profilePicture,
+        stars = this.stars,
+        sid = this.sid,
+        sync = this.sync,
+        requests = this.requests
+    )
+}
+
